@@ -24,10 +24,6 @@ class SparkSubstraitConverter:
             self, i: int) -> algebra_pb2.Expression.Literal:
         return algebra_pb2.Expression.Literal(i32=i)
 
-    def convert_integer_literal(
-            self, i: int) -> algebra_pb2.Expression.Literal:
-        return algebra_pb2.Expression.Literal(i32=i)
-
     def convert_float_literal(
             self, f: float) -> algebra_pb2.Expression.Literal:
         return algebra_pb2.Expression.Literal(fp32=f)
