@@ -41,27 +41,92 @@ relations {
                                       }
                                     }
                                     expressions {
+                                      scalar_function {
+                                        function_reference: 9999
+                                        arguments {
+                                          value {
+                                            selection {
+                                            }
+                                          }
+                                        }
+                                        arguments {
+                                          value {
+                                            literal {
+                                            }
+                                          }
+                                        }
+                                        arguments {
+                                          value {
+                                            literal {
+                                            }
+                                          }
+                                        }
+                                      }
                                     }
                                   }
                                 }
                                 expressions {
+                                  cast {
+                                    input {
+                                      selection {
+                                      }
+                                    }
+                                  }
                                 }
                               }
                             }
                             expressions {
+                              cast {
+                                input {
+                                  selection {
+                                  }
+                                }
+                              }
                             }
                           }
                         }
                         condition {
+                          scalar_function {
+                            function_reference: 9999
+                            arguments {
+                              value {
+                                selection {
+                                }
+                              }
+                            }
+                            arguments {
+                              value {
+                                literal {
+                                }
+                              }
+                            }
+                          }
                         }
                       }
                     }
                     condition {
+                      scalar_function {
+                        function_reference: 9999
+                        arguments {
+                          value {
+                            selection {
+                            }
+                          }
+                        }
+                        arguments {
+                          value {
+                            literal {
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
                 groupings {
                   grouping_expressions {
+                    selection {
+                    }
                   }
                 }
                 measures {
@@ -72,6 +137,8 @@ relations {
             }
             sorts {
               expr {
+                selection {
+                }
               }
               direction: SORT_DIRECTION_DESC_NULLS_LAST
             }

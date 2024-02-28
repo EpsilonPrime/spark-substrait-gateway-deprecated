@@ -12,9 +12,84 @@ import spark.connect.relations_pb2 as spark_relations_pb2
 class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
 
-    def convert_expression(self, _: spark_exprs_pb2.Expression) -> algebra_pb2.Expression:
+    def convert_literal_expression(
+            self, literal: spark_exprs_pb2.Expression.Literal) -> algebra_pb2.Expression:
+        return algebra_pb2.Expression(literal=algebra_pb2.Expression.Literal())
+
+    def convert_unresolved_attribute(
+            self,
+            eunresolved_attribute: spark_exprs_pb2.Expression.UnresolvedAttribute) -> algebra_pb2.Expression:
+        return algebra_pb2.Expression(selection=algebra_pb2.Expression.FieldReference())
+
+    def convert_unresolved_function(
+            self,
+            unresolved_function: spark_exprs_pb2.Expression.UnresolvedFunction) -> algebra_pb2.Expression:
+        func = algebra_pb2.Expression.ScalarFunction()
+        func.function_reference=9999  # TODO -- Implement.
+        for arg in unresolved_function.arguments:
+            func.arguments.append(
+                algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
+        # TODO -- Calculate the output_type.
+        return algebra_pb2.Expression(scalar_function=func)
+
+    def convert_alias_expression(
+            self, alias: spark_exprs_pb2.Expression.Alias) -> algebra_pb2.Expression:
+        # TODO -- Utilize the alias name.
+        return self.convert_expression(alias.expr)
+
+    def convert_cast_expression(
+            self, cast: spark_exprs_pb2.Expression.Cast) -> algebra_pb2.Expression:
+        # TODO -- Implement type handling.
+        return algebra_pb2.Expression(
+            cast=algebra_pb2.Expression.Cast(input=self.convert_expression(cast.expr)))
+
+    def convert_expression(self, expr: spark_exprs_pb2.Expression) -> algebra_pb2.Expression:
         """Converts a SparkConnect expression to a Substrait expression."""
-        return algebra_pb2.Expression()
+        match expr.WhichOneof('expr_type'):
+            case 'literal':
+                result = self.convert_literal_expression(expr.literal)
+            case 'unresolved_attribute':
+                result = self.convert_unresolved_attribute(expr.unresolved_attribute)
+            case 'unresolved_function':
+                result = self.convert_unresolved_function(expr.unresolved_function)
+            case 'expression_string':
+                raise NotImplementedError(
+                    'expression_string expression type not supported')
+            case 'unresolved_star':
+                raise NotImplementedError(
+                    'unresolved_star expression type not supported')
+            case 'alias':
+                result = self.convert_alias_expression(expr.alias)
+            case 'cast':
+                result = self.convert_cast_expression(expr.cast)
+            case 'unresolved_regex':
+                raise NotImplementedError(
+                    'unresolved_regex expression type not supported')
+            case 'sort_order':
+                raise NotImplementedError(
+                    'sort_order expression type not supported')
+            case 'lambda_function':
+                raise NotImplementedError(
+                    'lambda_function expression type not supported')
+            case 'window':
+                raise NotImplementedError(
+                    'window expression type not supported')
+            case 'unresolved_extract_value':
+                raise NotImplementedError(
+                    'unresolved_extract_value expression type not supported')
+            case 'update_fields':
+                raise NotImplementedError(
+                    'update_fields expression type not supported')
+            case 'unresolved_named_lambda_variable':
+                raise NotImplementedError(
+                    'unresolved_named_lambda_variable expression type not supported')
+            case 'common_inline_user_defined_function':
+                raise NotImplementedError(
+                    'common_inline_user_defined_function expression type not supported')
+            case _:
+                raise NotImplementedError(
+                    f'Unexpected expression type: {expr.WhichOneof("expr_type")}')
+        return result
 
     def convert_expression_to_aggregate_function(
             self,
