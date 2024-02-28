@@ -1,17 +1,20 @@
 extensions {
   extension_function {
+    extension_uri_reference: 9999
     function_anchor: 1
     name: "split"
   }
 }
 extensions {
   extension_function {
+    extension_uri_reference: 9999
     function_anchor: 2
     name: "=="
   }
 }
 extensions {
   extension_function {
+    extension_uri_reference: 9999
     function_anchor: 3
     name: "array_contains"
   }

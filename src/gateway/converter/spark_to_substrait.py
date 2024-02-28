@@ -12,6 +12,11 @@ import operator
 from typing import TypedDict
 
 
+class FunctionUriDict(TypedDict):
+    uri: str
+    anchor: int
+
+
 class FunctionDict(TypedDict):
     name: str
     field_reference: int
@@ -22,6 +27,7 @@ class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
 
     def __init__(self):
+        self._function_uris: FunctionUriDict = dict()
         self._functions: FunctionDict = dict()
 
     def lookup_function_by_name(self, name: str) -> int:
@@ -312,9 +318,12 @@ class SparkSubstraitConverter:
         if plan.HasField('root'):
             result.relations.append(plan_pb2.PlanRel(
                 root=algebra_pb2.RelRoot(input=self.convert_relation(plan.root))))
-        # TODO -- Add in the associated extension_uris we referenced.
+        for uri in sorted(self._function_uris.items(), key=operator.itemgetter(1)):
+            result.extension_uris.append(
+                extensions_pb2.SimpleExtensionURI(extension_uri_anchor=uri[1],
+                                                  uri=uri[0]))
         for f in sorted(self._functions.items(), key=operator.itemgetter(1)):
             result.extensions.append(extensions_pb2.SimpleExtensionDeclaration(
                 extension_function=extensions_pb2.SimpleExtensionDeclaration.ExtensionFunction(
-                    function_anchor=f[1], name=f[0])))
+                    extension_uri_reference=9999, function_anchor=f[1], name=f[0])))
         return result
