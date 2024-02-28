@@ -12,9 +12,62 @@ import spark.connect.relations_pb2 as spark_relations_pb2
 class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
 
+    def convert_boolean_literal(
+            self, boolean: bool) -> algebra_pb2.Expression.Literal:
+        return algebra_pb2.Expression.Literal(boolean=boolean)
+
+    def convert_integer_literal(
+            self, i: int) -> algebra_pb2.Expression.Literal:
+        return algebra_pb2.Expression.Literal(i32=i)
+
+    def convert_string_literal(
+            self, s: str) -> algebra_pb2.Expression.Literal:
+        return algebra_pb2.Expression.Literal(string=s)
+
     def convert_literal_expression(
             self, literal: spark_exprs_pb2.Expression.Literal) -> algebra_pb2.Expression:
-        return algebra_pb2.Expression(literal=algebra_pb2.Expression.Literal())
+        match literal.WhichOneof('literal_type'):
+            case 'null':
+                # TODO -- Finish with the type implementation.
+                result = algebra_pb2.Expression.Literal()
+            case 'binary':
+                result = algebra_pb2.Expression.Literal()
+            case 'boolean':
+                result = self.convert_boolean_literal(literal.boolean)
+            case 'byte':
+                result = algebra_pb2.Expression.Literal()
+            case 'short':
+                result = algebra_pb2.Expression.Literal()
+            case 'integer':
+                result = self.convert_integer_literal(literal.integer)
+            case 'long':
+                result = algebra_pb2.Expression.Literal()
+            case 'float':
+                result = algebra_pb2.Expression.Literal()
+            case 'double':
+                result = algebra_pb2.Expression.Literal()
+            case 'decimal':
+                result = algebra_pb2.Expression.Literal()
+            case 'string':
+                result = self.convert_string_literal(literal.string)
+            case 'date':
+                result = algebra_pb2.Expression.Literal()
+            case 'timestamp':
+                result = algebra_pb2.Expression.Literal()
+            case 'timestamp_ntz':
+                result = algebra_pb2.Expression.Literal()
+            case 'calendar_interval':
+                result = algebra_pb2.Expression.Literal()
+            case 'year_month_interval':
+                result = algebra_pb2.Expression.Literal()
+            case 'day_time_interval':
+                result = algebra_pb2.Expression.Literal()
+            case 'array':
+                result = algebra_pb2.Expression.Literal()
+            case _:
+                raise NotImplementedError(
+                    f'Unexpected literal type: {literal.WhichOneof('literal_type')}')
+        return algebra_pb2.Expression(literal=result)
 
     def convert_unresolved_attribute(
             self,
@@ -25,7 +78,7 @@ class SparkSubstraitConverter:
             self,
             unresolved_function: spark_exprs_pb2.Expression.UnresolvedFunction) -> algebra_pb2.Expression:
         func = algebra_pb2.Expression.ScalarFunction()
-        func.function_reference=9999  # TODO -- Implement.
+        func.function_reference = 9999  # TODO -- Implement.
         for arg in unresolved_function.arguments:
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))

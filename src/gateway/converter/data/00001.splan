@@ -52,12 +52,14 @@ relations {
                                         arguments {
                                           value {
                                             literal {
+                                              string: "; "
                                             }
                                           }
                                         }
                                         arguments {
                                           value {
                                             literal {
+                                              i32: -1
                                             }
                                           }
                                         }
@@ -97,6 +99,7 @@ relations {
                             arguments {
                               value {
                                 literal {
+                                  boolean: false
                                 }
                               }
                             }
@@ -116,6 +119,7 @@ relations {
                         arguments {
                           value {
                             literal {
+                              string: "pop"
                             }
                           }
                         }
