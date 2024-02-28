@@ -16,9 +16,25 @@ class SparkSubstraitConverter:
             self, boolean: bool) -> algebra_pb2.Expression.Literal:
         return algebra_pb2.Expression.Literal(boolean=boolean)
 
+    def convert_short_literal(
+            self, i: int) -> algebra_pb2.Expression.Literal:
+        return algebra_pb2.Expression.Literal(i16=i)
+
     def convert_integer_literal(
             self, i: int) -> algebra_pb2.Expression.Literal:
         return algebra_pb2.Expression.Literal(i32=i)
+
+    def convert_integer_literal(
+            self, i: int) -> algebra_pb2.Expression.Literal:
+        return algebra_pb2.Expression.Literal(i32=i)
+
+    def convert_float_literal(
+            self, f: float) -> algebra_pb2.Expression.Literal:
+        return algebra_pb2.Expression.Literal(fp32=f)
+
+    def convert_double_literal(
+            self, d: float) -> algebra_pb2.Expression.Literal:
+        return algebra_pb2.Expression.Literal(fp64=d)
 
     def convert_string_literal(
             self, s: str) -> algebra_pb2.Expression.Literal:
@@ -37,15 +53,15 @@ class SparkSubstraitConverter:
             case 'byte':
                 result = algebra_pb2.Expression.Literal()
             case 'short':
-                result = algebra_pb2.Expression.Literal()
+                result = self.convert_short_literal(literal.short)
             case 'integer':
                 result = self.convert_integer_literal(literal.integer)
             case 'long':
                 result = algebra_pb2.Expression.Literal()
             case 'float':
-                result = algebra_pb2.Expression.Literal()
+                result = self.convert_float_literal(literal.float)
             case 'double':
-                result = algebra_pb2.Expression.Literal()
+                result = self.convert_double_literal(literal.double)
             case 'decimal':
                 result = algebra_pb2.Expression.Literal()
             case 'string':
