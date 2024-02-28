@@ -2,15 +2,33 @@
 """Routines to convert SparkConnect plans to Substrait plans."""
 from substrait.gen.proto import plan_pb2
 from substrait.gen.proto import algebra_pb2
+from substrait.gen.proto.extensions import extensions_pb2
 
 import spark.connect.base_pb2 as spark_pb2
 import spark.connect.expressions_pb2 as spark_exprs_pb2
 import spark.connect.relations_pb2 as spark_relations_pb2
 
+import operator
+from typing import TypedDict
+
+
+class FunctionDict(TypedDict):
+    name: str
+    field_reference: int
+
 
 # pylint: disable=E1101,fixme
 class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
+
+    def __init__(self):
+        self._functions: FunctionDict = dict()
+
+    def lookup_function_by_name(self, name: str) -> int:
+        if name in self._functions:
+            return self._functions.get(name)
+        self._functions[name] = len(self._functions) + 1
+        return self._functions.get(name)
 
     def convert_boolean_literal(
             self, boolean: bool) -> algebra_pb2.Expression.Literal:
@@ -83,17 +101,20 @@ class SparkSubstraitConverter:
 
     def convert_unresolved_attribute(
             self,
-            eunresolved_attribute: spark_exprs_pb2.Expression.UnresolvedAttribute) -> algebra_pb2.Expression:
+            attr: spark_exprs_pb2.Expression.UnresolvedAttribute) -> algebra_pb2.Expression:
         return algebra_pb2.Expression(selection=algebra_pb2.Expression.FieldReference())
 
     def convert_unresolved_function(
             self,
             unresolved_function: spark_exprs_pb2.Expression.UnresolvedFunction) -> algebra_pb2.Expression:
         func = algebra_pb2.Expression.ScalarFunction()
-        func.function_reference = 9999  # TODO -- Implement.
+        func.function_reference = self.lookup_function_by_name(unresolved_function.function_name)
         for arg in unresolved_function.arguments:
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
+        if unresolved_function.is_distinct:
+            raise NotImplementedError(
+                'Treating arguments as distinct is not supported for unresolved functions.')
         # TODO -- Calculate the output_type.
         return algebra_pb2.Expression(scalar_function=func)
 
@@ -291,5 +312,9 @@ class SparkSubstraitConverter:
         if plan.HasField('root'):
             result.relations.append(plan_pb2.PlanRel(
                 root=algebra_pb2.RelRoot(input=self.convert_relation(plan.root))))
-        # TODO -- Add the extension_uris and extensions we referenced to result.
+        # TODO -- Add in the associated extension_uris we referenced.
+        for f in sorted(self._functions.items(), key=operator.itemgetter(1)):
+            result.extensions.append(extensions_pb2.SimpleExtensionDeclaration(
+                extension_function=extensions_pb2.SimpleExtensionDeclaration.ExtensionFunction(
+                    function_anchor=f[1], name=f[0])))
         return result

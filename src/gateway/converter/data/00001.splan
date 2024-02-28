@@ -1,3 +1,21 @@
+extensions {
+  extension_function {
+    function_anchor: 1
+    name: "split"
+  }
+}
+extensions {
+  extension_function {
+    function_anchor: 2
+    name: "=="
+  }
+}
+extensions {
+  extension_function {
+    function_anchor: 3
+    name: "array_contains"
+  }
+}
 relations {
   root {
     input {
@@ -42,7 +60,7 @@ relations {
                                     }
                                     expressions {
                                       scalar_function {
-                                        function_reference: 9999
+                                        function_reference: 1
                                         arguments {
                                           value {
                                             selection {
@@ -89,7 +107,7 @@ relations {
                         }
                         condition {
                           scalar_function {
-                            function_reference: 9999
+                            function_reference: 2
                             arguments {
                               value {
                                 selection {
@@ -109,7 +127,7 @@ relations {
                     }
                     condition {
                       scalar_function {
-                        function_reference: 9999
+                        function_reference: 3
                         arguments {
                           value {
                             selection {
