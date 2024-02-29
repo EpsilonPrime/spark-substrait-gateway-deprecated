@@ -35,14 +35,34 @@ relations {
   root {
     input {
       fetch {
+        common {
+          direct {
+          }
+        }
         input {
           sort {
+            common {
+              direct {
+              }
+            }
             input {
               aggregate {
+                common {
+                  direct {
+                  }
+                }
                 input {
                   filter {
+                    common {
+                      direct {
+                      }
+                    }
                     input {
                       filter {
+                        common {
+                          direct {
+                          }
+                        }
                         input {
                           project {
                             common {
@@ -66,6 +86,10 @@ relations {
                                     }
                                     input {
                                       read {
+                                        common {
+                                          direct {
+                                          }
+                                        }
                                         local_files {
                                           items {
                                             uri_file: "/Users/davids/Desktop/artists.csv"

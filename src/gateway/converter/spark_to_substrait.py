@@ -236,25 +236,33 @@ class SparkSubstraitConverter:
             local.items.append(algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=path))
         return algebra_pb2.Rel(read=algebra_pb2.ReadRel(local_files=local))
 
+    def create_common_relation(self) -> algebra_pb2.RelCommon:
+        """Creates the common metadata relation used by all relations."""
+        return algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct())
+
     def convert_read_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
         """Converts a read relation into a Substrait relation."""
         match rel.WhichOneof('read_type'):
             case 'named_table':
-                return self.convert_read_named_table_relation(rel.named_table)
+                result = self.convert_read_named_table_relation(rel.named_table)
             case 'data_source':
-                return self.convert_read_data_source_relation(rel.data_source)
+                result = self.convert_read_data_source_relation(rel.data_source)
             case _:
                 raise ValueError(f'Unexpected read type: {rel.WhichOneof("read_type")}')
+        result.read.common.CopyFrom(self.create_common_relation())
+        return result
 
     def convert_filter_relation(self, rel: spark_relations_pb2.Filter) -> algebra_pb2.Rel:
         """Converts a filter relation into a Substrait relation."""
         filter_rel = algebra_pb2.FilterRel(input=self.convert_relation(rel.input))
+        filter_rel.common.CopyFrom(self.create_common_relation())
         filter_rel.condition.CopyFrom(self.convert_expression(rel.condition))
         return algebra_pb2.Rel(filter=filter_rel)
 
     def convert_sort_relation(self, rel: spark_relations_pb2.Sort) -> algebra_pb2.Rel:
         """Converts a sort relation into a Substrait relation."""
         sort = algebra_pb2.SortRel(input=self.convert_relation(rel.input))
+        sort.common.CopyFrom(self.create_common_relation())
         for order in rel.order:
             if order.direction == spark_exprs_pb2.Expression.SortOrder.SORT_DIRECTION_ASCENDING:
                 if order.null_ordering == spark_exprs_pb2.Expression.SortOrder.SORT_NULLS_FIRST:
@@ -274,11 +282,12 @@ class SparkSubstraitConverter:
     def convert_limit_relation(self, rel: spark_relations_pb2.Limit) -> algebra_pb2.Rel:
         """Converts a limit relation into a Substrait FetchRel relation."""
         return algebra_pb2.Rel(
-            fetch=algebra_pb2.FetchRel(input=self.convert_relation(rel.input), count=rel.limit))
+            fetch=algebra_pb2.FetchRel(common=self.create_common_relation(), input=self.convert_relation(rel.input), count=rel.limit))
 
     def convert_aggregate_relation(self, rel: spark_relations_pb2.Aggregate) -> algebra_pb2.Rel:
         """Converts an aggregate relation into a Substrait relation."""
         aggregate = algebra_pb2.AggregateRel(input=self.convert_relation(rel.input))
+        aggregate.common.CopyFrom(self.create_common_relation())
         for grouping in rel.grouping_expressions:
             aggregate.groupings.append(
                 algebra_pb2.AggregateRel.Grouping(
@@ -299,6 +308,7 @@ class SparkSubstraitConverter:
             self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
         """Converts a with columns relation into a Substrait project relation."""
         project = algebra_pb2.ProjectRel(input=self.convert_relation(rel.input))
+        project.common.CopyFrom(self.create_common_relation())
         num_emitted_fields = 0
         for alias in rel.aliases:
             # TODO -- Handle the output columns correctly.
@@ -325,7 +335,6 @@ class SparkSubstraitConverter:
                 result = self.convert_with_columns_relation(rel.with_columns)
             case _:
                 raise ValueError(f'Unexpected rel type: {rel.WhichOneof("rel_type")}')
-        # result.common.direct = algebra_pb2.RelCommon.Direct()
         return result
 
     def convert_plan(self, plan: spark_pb2.Plan) -> plan_pb2.Plan:
