@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Provides the mapping of Spark functions to Substrait."""
+import dataclasses
 
 
+@dataclasses.dataclass
 class ExtensionFunction:
+    """Represents a Substrait function."""
     uri: str
     name: str
     output_type: str
@@ -23,4 +26,5 @@ SPARK_SUBSTRAIT_MAPPING = {
 
 
 def lookup_spark_function(name: str) -> ExtensionFunction:
+    """Returns a Substrait function given a spark function name."""
     return SPARK_SUBSTRAIT_MAPPING.get(name)
