@@ -115,7 +115,10 @@ class SparkSubstraitConverter:
             _: spark_exprs_pb2.Expression.UnresolvedAttribute) -> algebra_pb2.Expression:
         """Converts a Spark unresolved attribute into a Substrait field reference."""
         # TODO -- Implement.
-        return algebra_pb2.Expression(selection=algebra_pb2.Expression.FieldReference())
+        return algebra_pb2.Expression(selection=algebra_pb2.Expression.FieldReference(
+            direct_reference=algebra_pb2.Expression.ReferenceSegment(
+                struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(field=9999)),
+            root_reference=algebra_pb2.Expression.FieldReference.RootReference()))
 
     def convert_unresolved_function(
             self,
@@ -303,26 +306,27 @@ class SparkSubstraitConverter:
             project.common.emit.output_mapping.append(num_emitted_fields)
         return algebra_pb2.Rel(project=project)
 
-    # pylint: disable=too-many-return-statements
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Converts a Spark relation into a Substrait one."""
         match rel.WhichOneof('rel_type'):
             case 'read':
-                return self.convert_read_relation(rel.read)
+                result = self.convert_read_relation(rel.read)
             case 'filter':
-                return self.convert_filter_relation(rel.filter)
+                result = self.convert_filter_relation(rel.filter)
             case 'sort':
-                return self.convert_sort_relation(rel.sort)
+                result = self.convert_sort_relation(rel.sort)
             case 'limit':
-                return self.convert_limit_relation(rel.limit)
+                result = self.convert_limit_relation(rel.limit)
             case 'aggregate':
-                return self.convert_aggregate_relation(rel.aggregate)
+                result = self.convert_aggregate_relation(rel.aggregate)
             case 'show_string':
-                return self.convert_show_string_relation(rel.show_string)
+                result = self.convert_show_string_relation(rel.show_string)
             case 'with_columns':
-                return self.convert_with_columns_relation(rel.with_columns)
+                result = self.convert_with_columns_relation(rel.with_columns)
             case _:
                 raise ValueError(f'Unexpected rel type: {rel.WhichOneof("rel_type")}')
+        # result.common.direct = algebra_pb2.RelCommon.Direct()
+        return result
 
     def convert_plan(self, plan: spark_pb2.Plan) -> plan_pb2.Plan:
         """Converts a Spark plan into a Substrait plan."""
