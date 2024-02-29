@@ -282,7 +282,8 @@ class SparkSubstraitConverter:
     def convert_limit_relation(self, rel: spark_relations_pb2.Limit) -> algebra_pb2.Rel:
         """Converts a limit relation into a Substrait FetchRel relation."""
         return algebra_pb2.Rel(
-            fetch=algebra_pb2.FetchRel(common=self.create_common_relation(), input=self.convert_relation(rel.input), count=rel.limit))
+            fetch=algebra_pb2.FetchRel(common=self.create_common_relation(),
+                                       input=self.convert_relation(rel.input), count=rel.limit))
 
     def convert_aggregate_relation(self, rel: spark_relations_pb2.Aggregate) -> algebra_pb2.Rel:
         """Converts an aggregate relation into a Substrait relation."""
