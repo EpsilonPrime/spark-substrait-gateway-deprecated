@@ -25,7 +25,7 @@ To use the gateway simply start the gateway server:
 python src/gateway/server.py
 ```
 
-This will start the service on local port 50051.
+This will start the service on local port 50051 (this is not currently configurable).
 
 ## Connecting to the Gateway
 
