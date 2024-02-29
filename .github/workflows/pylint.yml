@@ -17,6 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         $CONDA/bin/conda env update --file environment.yml --name base
+        python -m pip install --upgrade pip
         conda install pylint
     - name: Analysing the code with pylint
       run: |
