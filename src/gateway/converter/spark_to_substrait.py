@@ -66,9 +66,9 @@ class SparkSubstraitConverter:
 
     def convert_filter_relation(self, rel: spark_relations_pb2.Filter) -> algebra_pb2.Rel:
         """Converts a filter relation into a Substrait relation."""
-        filter = algebra_pb2.FilterRel(input=self.convert_relation(rel.input))
-        filter.condition.CopyFrom(self.convert_expression(rel.condition))
-        return algebra_pb2.Rel(filter=filter)
+        filter_rel = algebra_pb2.FilterRel(input=self.convert_relation(rel.input))
+        filter_rel.condition.CopyFrom(self.convert_expression(rel.condition))
+        return algebra_pb2.Rel(filter=filter_rel)
 
     def convert_sort_relation(self, rel: spark_relations_pb2.Sort) -> algebra_pb2.Rel:
         """Converts a sort relation into a Substrait relation."""
