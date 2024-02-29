@@ -4,6 +4,7 @@ from substrait.gen.proto import plan_pb2
 from substrait.gen.proto import algebra_pb2
 from substrait.gen.proto.extensions import extensions_pb2
 
+from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 import spark.connect.base_pb2 as spark_pb2
 import spark.connect.expressions_pb2 as spark_exprs_pb2
 import spark.connect.relations_pb2 as spark_relations_pb2
@@ -19,7 +20,7 @@ class FunctionUriDict(TypedDict):
 
 class FunctionDict(TypedDict):
     name: str
-    field_reference: int
+    function: ExtensionFunction
 
 
 # pylint: disable=E1101,fixme
@@ -32,9 +33,15 @@ class SparkSubstraitConverter:
 
     def lookup_function_by_name(self, name: str) -> int:
         if name in self._functions:
-            return self._functions.get(name)
-        self._functions[name] = len(self._functions) + 1
-        return self._functions.get(name)
+            return self._functions.get(name).anchor
+        func = lookup_spark_function(name)
+        if not func:
+            raise LookupError(f'function name does not have a known Substrait conversion')
+        func.anchor = len(self._functions) + 1
+        self._functions[name] = func
+        if not self._function_uris.get(func.uri):
+            self._function_uris[func.uri] = len(self._function_uris) + 1
+        return self._functions.get(name).anchor
 
     def convert_boolean_literal(
             self, boolean: bool) -> algebra_pb2.Expression.Literal:
@@ -322,8 +329,9 @@ class SparkSubstraitConverter:
             result.extension_uris.append(
                 extensions_pb2.SimpleExtensionURI(extension_uri_anchor=uri[1],
                                                   uri=uri[0]))
-        for f in sorted(self._functions.items(), key=operator.itemgetter(1)):
+        for f in sorted(self._functions.values()):
             result.extensions.append(extensions_pb2.SimpleExtensionDeclaration(
                 extension_function=extensions_pb2.SimpleExtensionDeclaration.ExtensionFunction(
-                    extension_uri_reference=9999, function_anchor=f[1], name=f[0])))
+                    extension_uri_reference=self._function_uris.get(f.uri),
+                    function_anchor=f.anchor, name=f.name)))
         return result

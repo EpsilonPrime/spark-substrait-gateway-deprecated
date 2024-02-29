@@ -1,22 +1,34 @@
-extensions {
-  extension_function {
-    extension_uri_reference: 9999
-    function_anchor: 1
-    name: "split"
-  }
+extension_uris {
+  extension_uri_anchor: 1
+  uri: "/functions_string.yaml"
+}
+extension_uris {
+  extension_uri_anchor: 2
+  uri: "/functions_comparison.yaml"
+}
+extension_uris {
+  extension_uri_anchor: 3
+  uri: "/functions_set.yaml"
 }
 extensions {
   extension_function {
-    extension_uri_reference: 9999
+    extension_uri_reference: 2
     function_anchor: 2
-    name: "=="
+    name: "equal:str_str"
   }
 }
 extensions {
   extension_function {
-    extension_uri_reference: 9999
+    extension_uri_reference: 3
     function_anchor: 3
-    name: "array_contains"
+    name: "index_in:str_liststr"
+  }
+}
+extensions {
+  extension_function {
+    extension_uri_reference: 1
+    function_anchor: 1
+    name: "string_split:str_str"
   }
 }
 relations {
