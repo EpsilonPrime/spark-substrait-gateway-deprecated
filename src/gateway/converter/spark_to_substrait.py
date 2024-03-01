@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Routines to convert SparkConnect plans to Substrait plans."""
+from collections import defaultdict
 import operator
-from typing import Dict
+from typing import Dict, List
 
 from substrait.gen.proto import plan_pb2
 from substrait.gen.proto import algebra_pb2
@@ -13,6 +14,13 @@ import spark.connect.expressions_pb2 as spark_exprs_pb2
 import spark.connect.relations_pb2 as spark_relations_pb2
 
 
+class PlanMetadata:
+    """Tracks various information about a specific plan id."""
+    parent_plan_id: int
+    input_fields: List[str]  # And maybe type
+    output_fields: List[str]
+
+
 # pylint: disable=E1101,fixme,too-many-public-methods
 class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
@@ -20,6 +28,8 @@ class SparkSubstraitConverter:
     def __init__(self):
         self._function_uris: Dict[str, int] = {}
         self._functions: Dict[str, ExtensionFunction] = {}
+        self._current_plan_id: int = None
+        self._plan_metadata: Dict[int, PlanMetadata] = defaultdict(PlanMetadata)
 
     def lookup_function_by_name(self, name: str) -> int:
         """Finds the function reference for a given Spark function name."""
@@ -319,6 +329,9 @@ class SparkSubstraitConverter:
 
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Converts a Spark relation into a Substrait one."""
+        if self._current_plan_id is not None:
+            self._plan_metadata[rel.common.plan_id].parent_plan_id = self._current_plan_id
+        self._current_plan_id = rel.common.plan_id
         match rel.WhichOneof('rel_type'):
             case 'read':
                 result = self.convert_read_relation(rel.read)
