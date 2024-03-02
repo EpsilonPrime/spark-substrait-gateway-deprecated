@@ -5,12 +5,13 @@ import dataclasses
 import operator
 from typing import Dict, List
 
-import spark.connect.base_pb2 as spark_pb2
-import spark.connect.expressions_pb2 as spark_exprs_pb2
-import spark.connect.relations_pb2 as spark_relations_pb2
 from substrait.gen.proto import plan_pb2
 from substrait.gen.proto import algebra_pb2
 from substrait.gen.proto.extensions import extensions_pb2
+
+import spark.connect.base_pb2 as spark_pb2
+import spark.connect.expressions_pb2 as spark_exprs_pb2
+import spark.connect.relations_pb2 as spark_relations_pb2
 
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 

@@ -5,8 +5,9 @@ from pathlib import Path
 
 from google.protobuf import text_format
 import pytest
-from spark.connect import base_pb2 as spark_base_pb2
 from substrait.gen.proto import plan_pb2
+
+from spark.connect import base_pb2 as spark_base_pb2
 
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 
