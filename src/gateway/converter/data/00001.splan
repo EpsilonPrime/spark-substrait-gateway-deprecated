@@ -92,7 +92,9 @@ relations {
                                         }
                                         local_files {
                                           items {
-                                            uri_file: "/Users/davids/Desktop/artists.csv"
+                                            uri_file: "/Users/davids/Desktop/artists.parquet"
+                                            parquet {
+                                            }
                                           }
                                         }
                                       }

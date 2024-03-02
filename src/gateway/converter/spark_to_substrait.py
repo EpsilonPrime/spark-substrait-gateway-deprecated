@@ -216,29 +216,34 @@ class SparkSubstraitConverter:
     def convert_read_data_source_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
         """Converts a read data source relation into a Substrait relation."""
         local = algebra_pb2.ReadRel.LocalFiles()
-        match rel.format:
-            case 'parquet':
-                local.parquet = algebra_pb2.ReadRel.ParquetReadOptions()
-            case 'orc':
-                local.orc = algebra_pb2.ReadRel.OrcReadOptions()
-            case 'text':
-                raise NotImplementedError('the only supported formats are parquet and orc')
-            case 'json':
-                raise NotImplementedError('the only supported formats are parquet and orc')
-            case 'csv':
-                # TODO -- Implement CSV once Substrait has support.
-                pass
-            case 'avro':
-                raise NotImplementedError('the only supported formats are parquet and orc')
-            case 'arrow':
-                local.parquet = algebra_pb2.ReadRel.ArrowReadOptions()
-            case 'dwrf':
-                local.parquet = algebra_pb2.ReadRel.DwrfReadOptions()
-            case _:
-                raise NotImplementedError(f'Unexpected file format: {rel.format}')
         # TODO -- Handle the schema.
         for path in rel.paths:
-            local.items.append(algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=path))
+            file_or_files = algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=path)
+            match rel.format:
+                case 'parquet':
+                    file_or_files.parquet.CopyFrom(
+                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.ParquetReadOptions())
+                case 'orc':
+                    file_or_files.orc.CopyFrom(
+                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.OrcReadOptions())
+                case 'text':
+                    raise NotImplementedError('the only supported formats are parquet and orc')
+                case 'json':
+                    raise NotImplementedError('the only supported formats are parquet and orc')
+                case 'csv':
+                    # TODO -- Implement CSV once Substrait has support.
+                    pass
+                case 'avro':
+                    raise NotImplementedError('the only supported formats are parquet and orc')
+                case 'arrow':
+                    file_or_files.parquet.CopyFrom(
+                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.ArrowReadOptions())
+                case 'dwrf':
+                    file_or_files.parquet.CopyFrom(
+                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.DwrfReadOptions())
+                case _:
+                    raise NotImplementedError(f'Unexpected file format: {rel.format}')
+            local.items.append(file_or_files)
         return algebra_pb2.Rel(read=algebra_pb2.ReadRel(local_files=local))
 
     def create_common_relation(self) -> algebra_pb2.RelCommon:
