@@ -90,6 +90,70 @@ relations {
                                           direct {
                                           }
                                         }
+                                        base_schema {
+                                          names: "mbid"
+                                          names: "artist_mb"
+                                          names: "artist_lastfm"
+                                          names: "country_mb"
+                                          names: "country_lastfm"
+                                          names: "tags_mb"
+                                          names: "tags_lastfm"
+                                          names: "listeners_lastfm"
+                                          names: "scrobbles_lastfm"
+                                          names: "ambiguous_artist"
+                                          struct {
+                                            types {
+                                              string {
+                                                nullability: NULLABILITY_REQUIRED
+                                              }
+                                            }
+                                            types {
+                                              string {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              string {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              string {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              string {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              string {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              string {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              i32 {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              i32 {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                            types {
+                                              bool {
+                                                nullability: NULLABILITY_NULLABLE
+                                              }
+                                            }
+                                          }
+                                        }
                                         local_files {
                                           items {
                                             uri_file: "/Users/davids/Desktop/artists.parquet"

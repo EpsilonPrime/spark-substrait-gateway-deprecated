@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Routines to convert SparkConnect plans to Substrait plans."""
 from collections import defaultdict
+import json
 import operator
-from typing import Dict
+from typing import Dict, Optional
 
 from substrait.gen.proto import plan_pb2
 from substrait.gen.proto import algebra_pb2
+from substrait.gen.proto import type_pb2
 from substrait.gen.proto.extensions import extensions_pb2
 
 import spark.connect.base_pb2 as spark_pb2
@@ -213,10 +215,40 @@ class SparkSubstraitConverter:
         """Converts a read named table relation to a Substrait relation."""
         raise NotImplementedError('named tables are not yet implemented')
 
+    def convert_schema(self, schema_str: str) -> Optional[type_pb2.NamedStruct]:
+        """Converts the Spark JSON schema string into a Subtrait named type structure."""
+        if not schema_str:
+            return None
+        # TODO -- Deal with potential denial of service due to malformed JSON.
+        schema_data = json.loads(schema_str)
+        schema = type_pb2.NamedStruct()
+        for field in schema_data.get('fields'):
+            schema.names.append(field.get('name'))
+            if field.get('nullable'):
+                nullability = type_pb2.Type.NULLABILITY_NULLABLE
+            else:
+                nullability = type_pb2.Type.NULLABILITY_REQUIRED
+            match field.get('type'):
+                case 'boolean':
+                    field_type = type_pb2.Type(bool=type_pb2.Type.Boolean(nullability=nullability))
+                case 'short':
+                    field_type = type_pb2.Type(i16=type_pb2.Type.I16(nullability=nullability))
+                case 'integer':
+                    field_type = type_pb2.Type(i32=type_pb2.Type.I32(nullability=nullability))
+                case 'long':
+                    field_type = type_pb2.Type(i64=type_pb2.Type.I64(nullability=nullability))
+                case 'string':
+                    field_type = type_pb2.Type(string=type_pb2.Type.String(nullability=nullability))
+                case _:
+                    raise NotImplementedError(f'Unexpected field type: {field.get("type")}')
+
+            schema.struct.types.append(field_type)
+        return schema
+
     def convert_read_data_source_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
         """Converts a read data source relation into a Substrait relation."""
         local = algebra_pb2.ReadRel.LocalFiles()
-        # TODO -- Handle the schema.
+        schema = self.convert_schema(rel.schema)
         for path in rel.paths:
             file_or_files = algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=path)
             match rel.format:
@@ -244,7 +276,7 @@ class SparkSubstraitConverter:
                 case _:
                     raise NotImplementedError(f'Unexpected file format: {rel.format}')
             local.items.append(file_or_files)
-        return algebra_pb2.Rel(read=algebra_pb2.ReadRel(local_files=local))
+        return algebra_pb2.Rel(read=algebra_pb2.ReadRel(base_schema=schema, local_files=local))
 
     def create_common_relation(self) -> algebra_pb2.RelCommon:
         """Creates the common metadata relation used by all relations."""
