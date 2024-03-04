@@ -225,10 +225,23 @@ class SparkSubstraitConverter:
 
     def convert_expression_to_aggregate_function(
             self,
-            _: spark_exprs_pb2.Expression) -> algebra_pb2.AggregateFunction:
+            expr: spark_exprs_pb2.Expression) -> algebra_pb2.AggregateFunction:
         """Converts a SparkConnect expression to a Substrait expression."""
-        # TODO -- Implement.
-        return algebra_pb2.AggregateFunction()
+        func = algebra_pb2.AggregateFunction()
+        expression = self.convert_expression(expr)
+        match expression.WhichOneof('rex_type'):
+            case 'scalar_function':
+                function = expression.scalar_function
+            case 'window_function':
+                function = expression.window_function
+            case _:
+                raise NotImplementedError(
+                    'only functions of type unresolved function are supported in aggregate '
+                    'relations')
+        func.arguments.extend(function.arguments)
+        func.options.extend(function.options)
+        func.output_type.CopyFrom(function.output_type)
+        return func
 
     def convert_read_named_table_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
         """Converts a read named table relation to a Substrait relation."""
