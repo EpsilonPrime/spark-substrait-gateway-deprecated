@@ -2,7 +2,6 @@
 """Routines to convert SparkConnect plans to Substrait plans."""
 import json
 import operator
-from contextlib import contextmanager
 from typing import Dict, Optional
 
 from substrait.gen.proto import plan_pb2
@@ -16,21 +15,6 @@ import spark.connect.relations_pb2 as spark_relations_pb2
 
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 from gateway.converter.symbol_table import SymbolTable
-
-
-class PlanIdTracker(object):
-    def __init__(self, parent: 'SparkSubstraitConverter', plan_id: int):
-        self.new_plan_id = plan_id
-        self.parent = parent
-
-    @contextmanager
-    def that_plan(self):
-        try:
-            old_plan_id = self.parent._current_plan_id
-            self.parent._current_plan_id = self.new_plan_id
-            yield self.new_plan_id
-        finally:
-            self.parent._current_plan_id = old_plan_id
 
 
 # pylint: disable=E1101,fixme,too-many-public-methods
@@ -406,26 +390,27 @@ class SparkSubstraitConverter:
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Converts a Spark relation into a Substrait one."""
         self._symbol_table.add_symbol(rel.common.plan_id, parent=self._current_plan_id)
-        tracker = PlanIdTracker(self, rel.common.plan_id)
-        with tracker.that_plan():
-            match rel.WhichOneof('rel_type'):
-                case 'read':
-                    result = self.convert_read_relation(rel.read)
-                case 'filter':
-                    result = self.convert_filter_relation(rel.filter)
-                case 'sort':
-                    result = self.convert_sort_relation(rel.sort)
-                case 'limit':
-                    result = self.convert_limit_relation(rel.limit)
-                case 'aggregate':
-                    result = self.convert_aggregate_relation(rel.aggregate)
-                case 'show_string':
-                    result = self.convert_show_string_relation(rel.show_string)
-                case 'with_columns':
-                    result = self.convert_with_columns_relation(rel.with_columns)
-                case _:
-                    raise ValueError(f'Unexpected rel type: {rel.WhichOneof("rel_type")}')
-            return result
+        old_plan_id = self._current_plan_id
+        self._current_plan_id = rel.common.plan_id
+        match rel.WhichOneof('rel_type'):
+            case 'read':
+                result = self.convert_read_relation(rel.read)
+            case 'filter':
+                result = self.convert_filter_relation(rel.filter)
+            case 'sort':
+                result = self.convert_sort_relation(rel.sort)
+            case 'limit':
+                result = self.convert_limit_relation(rel.limit)
+            case 'aggregate':
+                result = self.convert_aggregate_relation(rel.aggregate)
+            case 'show_string':
+                result = self.convert_show_string_relation(rel.show_string)
+            case 'with_columns':
+                result = self.convert_with_columns_relation(rel.with_columns)
+            case _:
+                raise ValueError(f'Unexpected rel type: {rel.WhichOneof("rel_type")}')
+        self._current_plan_id = old_plan_id
+        return result
 
     def convert_plan(self, plan: spark_pb2.Plan) -> plan_pb2.Plan:
         """Converts a Spark plan into a Substrait plan."""
