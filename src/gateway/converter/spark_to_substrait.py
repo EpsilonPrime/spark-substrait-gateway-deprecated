@@ -140,6 +140,7 @@ class SparkSubstraitConverter:
             raise ValueError(
                 f'could not locate field named {attr.unparsed_identifier} in plan id '
                 f'{self._current_plan_id}')
+
         return algebra_pb2.Expression(selection=algebra_pb2.Expression.FieldReference(
             direct_reference=algebra_pb2.Expression.ReferenceSegment(
                 struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
