@@ -335,6 +335,7 @@ relations {
                 selection {
                   direct_reference {
                     struct_field {
+                      field: 10
                     }
                   }
                   root_reference {
