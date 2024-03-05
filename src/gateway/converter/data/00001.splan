@@ -77,22 +77,19 @@ relations {
                         input {
                           project {
                             common {
-                              emit {
-                                output_mapping: 0
+                              direct {
                               }
                             }
                             input {
                               project {
                                 common {
-                                  emit {
-                                    output_mapping: 0
+                                  direct {
                                   }
                                 }
                                 input {
                                   project {
                                     common {
-                                      emit {
-                                        output_mapping: 0
+                                      direct {
                                       }
                                     }
                                     input {
@@ -255,7 +252,7 @@ relations {
                           scalar_function {
                             function_reference: 2
                             output_type {
-                              string {
+                              bool {
                                 nullability: NULLABILITY_REQUIRED
                               }
                             }

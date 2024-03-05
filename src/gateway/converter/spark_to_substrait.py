@@ -419,11 +419,9 @@ class SparkSubstraitConverter:
         project = algebra_pb2.ProjectRel(input=self.convert_relation(rel.input))
         self.update_field_references(rel.input.common.plan_id)
         project.common.CopyFrom(self.create_common_relation())
-        num_emitted_fields = 0
         for alias in rel.aliases:
-            # TODO -- Handle the output columns correctly.
+            # TODO -- Handle the common.emit.output_mapping columns correctly.
             project.expressions.append(self.convert_expression(alias.expr))
-            project.common.emit.output_mapping.append(num_emitted_fields)
         return algebra_pb2.Rel(project=project)
 
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:

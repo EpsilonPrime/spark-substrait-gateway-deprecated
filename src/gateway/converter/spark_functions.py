@@ -34,7 +34,7 @@ SPARK_SUBSTRAIT_MAPPING = {
         max_args=2),
     '==': ExtensionFunction(
         '/functions_comparison.yaml', 'equal:str_str', type_pb2.Type(
-            string=type_pb2.Type.String(
+            bool=type_pb2.Type.Boolean(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
     'array_contains': ExtensionFunction(
         '/functions_set.yaml', 'index_in:str_liststr', type_pb2.Type(
