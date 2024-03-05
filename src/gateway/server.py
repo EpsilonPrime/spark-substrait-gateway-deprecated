@@ -8,6 +8,7 @@ import grpc
 import spark.connect.base_pb2_grpc as pb2_grpc
 import spark.connect.base_pb2 as pb2
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
+from gateway.adbc.backend import AdbcBackend
 
 
 # pylint: disable=E1101
@@ -24,6 +25,9 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         convert = SparkSubstraitConverter()
         substrait = convert.convert_plan(request.plan)
         print(f"  as Substrait: {substrait}")
+        backend = AdbcBackend()
+        results = backend.execute(substrait)
+        print(f"  results are: {results}")
         yield pb2.ExecutePlanResponse(
             session_id=request.session_id,
             arrow_batch=pb2.ExecutePlanResponse.ArrowBatch(row_count=0, data=None))
