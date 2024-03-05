@@ -426,9 +426,13 @@ class SparkSubstraitConverter:
         project = algebra_pb2.ProjectRel(input=self.convert_relation(rel.input))
         self.update_field_references(rel.input.common.plan_id)
         project.common.CopyFrom(self.create_common_relation())
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for alias in rel.aliases:
             # TODO -- Handle the common.emit.output_mapping columns correctly.
             project.expressions.append(self.convert_expression(alias.expr))
+            # TODO -- Add unique intermediate names.
+            symbol.generated_fields.append('intermediate')
+            symbol.output_fields.append('intermediate')
         return algebra_pb2.Rel(project=project)
 
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
