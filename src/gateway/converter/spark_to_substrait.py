@@ -175,8 +175,10 @@ class SparkSubstraitConverter:
         # TODO -- Utilize the alias name.
         return self.convert_expression(alias.expr)
 
-    def convert_type(self, type: spark_types_pb2.DataType) -> type_pb2.Type:
-        match type.WhichOneof('kind'):
+    def convert_type(self, spark_type: spark_types_pb2.DataType) -> type_pb2.Type:
+        """Converts a Spark type into a Substrait type."""
+        # TODO -- Properly handle nullability.
+        match spark_type.WhichOneof('kind'):
             case 'boolean':
                 return type_pb2.Type(bool=type_pb2.Type.Boolean(
                     nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED
@@ -432,7 +434,7 @@ class SparkSubstraitConverter:
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Converts a Spark relation into a Substrait one."""
         self._symbol_table.add_symbol(rel.common.plan_id, parent=self._current_plan_id,
-                                      type=rel.WhichOneof('rel_type'))
+                                      symbol_type=rel.WhichOneof('rel_type'))
         old_plan_id = self._current_plan_id
         self._current_plan_id = rel.common.plan_id
         match rel.WhichOneof('rel_type'):

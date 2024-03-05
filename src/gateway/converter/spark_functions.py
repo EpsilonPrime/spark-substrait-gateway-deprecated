@@ -6,6 +6,7 @@ from typing import Optional
 from substrait.gen.proto import type_pb2
 
 
+# pylint: disable=E1101
 @dataclasses.dataclass
 class ExtensionFunction:
     """Represents a Substrait function."""
@@ -15,17 +16,18 @@ class ExtensionFunction:
     anchor: int
     max_args: Optional[int]
 
-    def __init__(self, uri: str, name: str, type: type_pb2.Type,
+    def __init__(self, uri: str, name: str, output_type: type_pb2.Type,
                  max_args: Optional[int] = None):
         self.uri = uri
         self.name = name
-        self.output_type = type
+        self.output_type = output_type
         self.max_args = max_args
 
     def __lt__(self, obj):
         return ((self.uri) < (obj.uri) and (self.name) < (obj.name))
 
 
+# pylint: disable=E1101
 SPARK_SUBSTRAIT_MAPPING = {
     'split': ExtensionFunction(
         '/functions_string.yaml', 'string_split:str_str', type_pb2.Type(
