@@ -355,7 +355,7 @@ relations {
                 selection {
                   direct_reference {
                     struct_field {
-                      field: 10
+                      field: 1
                     }
                   }
                   root_reference {
@@ -369,6 +369,8 @@ relations {
         count: 10
       }
     }
+    names: "grouping"
+    names: "# of Listeners"
   }
 }
 version {

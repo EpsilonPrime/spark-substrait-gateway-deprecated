@@ -384,26 +384,31 @@ class SparkSubstraitConverter:
 
     def convert_limit_relation(self, rel: spark_relations_pb2.Limit) -> algebra_pb2.Rel:
         """Converts a limit relation into a Substrait FetchRel relation."""
-        return algebra_pb2.Rel(
-            fetch=algebra_pb2.FetchRel(common=self.create_common_relation(),
-                                       input=self.convert_relation(rel.input), count=rel.limit))
+        fetch = algebra_pb2.FetchRel(common=self.create_common_relation(),
+                                     input=self.convert_relation(rel.input), count=rel.limit)
+        self.update_field_references(rel.input.common.plan_id)
+        return algebra_pb2.Rel(fetch=fetch)
 
     def convert_aggregate_relation(self, rel: spark_relations_pb2.Aggregate) -> algebra_pb2.Rel:
         """Converts an aggregate relation into a Substrait relation."""
         aggregate = algebra_pb2.AggregateRel(input=self.convert_relation(rel.input))
         self.update_field_references(rel.input.common.plan_id)
         aggregate.common.CopyFrom(self.create_common_relation())
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for grouping in rel.grouping_expressions:
             aggregate.groupings.append(
                 algebra_pb2.AggregateRel.Grouping(
                     grouping_expressions=[self.convert_expression(grouping)]))
+            # TODO -- Use the same field name as what was selected in the grouping.
+            symbol.generated_fields.append('grouping')
         for expr in rel.aggregate_expressions:
             aggregate.measures.append(
                 algebra_pb2.AggregateRel.Measure(
                     measure=self.convert_expression_to_aggregate_function(expr))
             )
-            symbol = self._symbol_table.get_symbol(self._current_plan_id)
-            symbol.output_fields.extend(expr.alias.name)
+            symbol.generated_fields.append(expr.alias.name[0])
+        symbol.output_fields.clear()
+        symbol.output_fields.extend(symbol.generated_fields)
         return algebra_pb2.Rel(aggregate=aggregate)
 
     def convert_show_string_relation(self, rel: spark_relations_pb2.ShowString) -> algebra_pb2.Rel:
@@ -426,7 +431,8 @@ class SparkSubstraitConverter:
 
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Converts a Spark relation into a Substrait one."""
-        self._symbol_table.add_symbol(rel.common.plan_id, parent=self._current_plan_id)
+        self._symbol_table.add_symbol(rel.common.plan_id, parent=self._current_plan_id,
+                                      type=rel.WhichOneof('rel_type'))
         old_plan_id = self._current_plan_id
         self._current_plan_id = rel.common.plan_id
         match rel.WhichOneof('rel_type'):
@@ -455,8 +461,11 @@ class SparkSubstraitConverter:
         result.version.CopyFrom(
             plan_pb2.Version(minor_number=42, producer='spark-substrait-gateway'))
         if plan.HasField('root'):
-            result.relations.append(plan_pb2.PlanRel(
-                root=algebra_pb2.RelRoot(input=self.convert_relation(plan.root))))
+            rel_root = algebra_pb2.RelRoot(input=self.convert_relation(plan.root))
+            symbol = self._symbol_table.get_symbol(plan.root.common.plan_id)
+            for name in symbol.output_fields:
+                rel_root.names.append(name)
+            result.relations.append(plan_pb2.PlanRel(root=rel_root))
         for uri in sorted(self._function_uris.items(), key=operator.itemgetter(1)):
             result.extension_uris.append(
                 extensions_pb2.SimpleExtensionURI(extension_uri_anchor=uri[1],
