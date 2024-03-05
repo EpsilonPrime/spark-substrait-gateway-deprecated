@@ -203,19 +203,17 @@ relations {
                                             }
                                           }
                                         }
-                                        arguments {
-                                          value {
-                                            literal {
-                                              i32: -1
-                                            }
-                                          }
-                                        }
                                       }
                                     }
                                   }
                                 }
                                 expressions {
                                   cast {
+                                    type {
+                                      i32 {
+                                        nullability: NULLABILITY_REQUIRED
+                                      }
+                                    }
                                     input {
                                       selection {
                                         direct_reference {
@@ -233,6 +231,11 @@ relations {
                             }
                             expressions {
                               cast {
+                                type {
+                                  bool {
+                                    nullability: NULLABILITY_REQUIRED
+                                  }
+                                }
                                 input {
                                   selection {
                                     direct_reference {

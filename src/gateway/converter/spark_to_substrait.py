@@ -12,6 +12,7 @@ from substrait.gen.proto.extensions import extensions_pb2
 import spark.connect.base_pb2 as spark_pb2
 import spark.connect.expressions_pb2 as spark_exprs_pb2
 import spark.connect.relations_pb2 as spark_relations_pb2
+import spark.connect.types_pb2 as spark_types_pb2
 
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 from gateway.converter.symbol_table import SymbolTable
@@ -155,7 +156,11 @@ class SparkSubstraitConverter:
         func = algebra_pb2.Expression.ScalarFunction()
         function_def = self.lookup_function_by_name(unresolved_function.function_name)
         func.function_reference = function_def.anchor
+        curr_arg_count = 0
         for arg in unresolved_function.arguments:
+            curr_arg_count += 1
+            if function_def.max_args is not None and curr_arg_count > function_def.max_args:
+                break
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
         if unresolved_function.is_distinct:
@@ -170,12 +175,27 @@ class SparkSubstraitConverter:
         # TODO -- Utilize the alias name.
         return self.convert_expression(alias.expr)
 
+    def convert_type(self, type: spark_types_pb2.DataType) -> type_pb2.Type:
+        match type.WhichOneof('kind'):
+            case 'boolean':
+                return type_pb2.Type(bool=type_pb2.Type.Boolean(
+                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED
+                ))
+            case 'integer':
+                return type_pb2.Type(i32=type_pb2.Type.I32(
+                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED
+                ))
+            # TODO -- Add all of the other types.
+            case _:
+                raise NotImplementedError(
+                    f'type {type.WhichOneof("kind")} not yet implemented.')
+
     def convert_cast_expression(
             self, cast: spark_exprs_pb2.Expression.Cast) -> algebra_pb2.Expression:
         """Converts a Spark cast expression into a Substrait cast expression."""
-        # TODO -- Implement type handling.
-        return algebra_pb2.Expression(
-            cast=algebra_pb2.Expression.Cast(input=self.convert_expression(cast.expr)))
+        cast_rel = algebra_pb2.Expression.Cast(input=self.convert_expression(cast.expr))
+        cast_rel.type.CopyFrom(self.convert_type(cast.type))
+        return algebra_pb2.Expression(cast=cast_rel)
 
     def convert_expression(self, expr: spark_exprs_pb2.Expression) -> algebra_pb2.Expression:
         """Converts a SparkConnect expression to a Substrait expression."""
@@ -257,7 +277,7 @@ class SparkSubstraitConverter:
         # TODO -- Deal with potential denial of service due to malformed JSON.
         schema_data = json.loads(schema_str)
         schema = type_pb2.NamedStruct()
-        schema.struct.nullability=type_pb2.Type.NULLABILITY_REQUIRED
+        schema.struct.nullability = type_pb2.Type.NULLABILITY_REQUIRED
         for field in schema_data.get('fields'):
             schema.names.append(field.get('name'))
             if field.get('nullable'):
