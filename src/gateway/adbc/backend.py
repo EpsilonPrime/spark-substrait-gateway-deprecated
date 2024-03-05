@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Provides client access to an ADBC backend."""
-import adbc_driver_duckdb.dbapi
+"""Will eventually provide client access to an ADBC backend."""
+import duckdb
 
 from substrait.gen.proto import plan_pb2
 
@@ -13,9 +13,10 @@ class AdbcBackend:
         pass
 
     def execute(self, plan: 'plan_pb2.Plan') -> str:
-        """Executes the given Substrait plan against the associated ADBC backend."""
-        with adbc_driver_duckdb.dbapi.connect() as conn, conn.cursor() as cur:
-            plan_data = plan.SerializeToString()
-            cur.adbc_statement.set_substrait_plan(plan_data)
-            tbl = cur.fetch_arrow_table()
-            return f'{tbl}'
+        """Executes the given Substrait plan against duckdb."""
+        con = duckdb.connect()
+        con.install_extension('substrait')
+        con.load_extension('substrait')
+        plan_data = plan.SerializeToString()
+        query_result = con.from_substrait(proto=plan_data)
+        return f'{query_result}'

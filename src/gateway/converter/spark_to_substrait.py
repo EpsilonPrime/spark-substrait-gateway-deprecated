@@ -239,6 +239,7 @@ class SparkSubstraitConverter:
                 raise NotImplementedError(
                     'only functions of type unresolved function are supported in aggregate '
                     'relations')
+        func.function_reference = function.function_reference
         func.arguments.extend(function.arguments)
         func.options.extend(function.options)
         func.output_type.CopyFrom(function.output_type)
