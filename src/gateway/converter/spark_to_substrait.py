@@ -27,10 +27,10 @@ class SparkSubstraitConverter:
         self._current_plan_id: int = None  # The relation currently being processed.
         self._symbol_table = SymbolTable()
 
-    def lookup_function_by_name(self, name: str) -> int:
+    def lookup_function_by_name(self, name: str) -> ExtensionFunction:
         """Finds the function reference for a given Spark function name."""
         if name in self._functions:
-            return self._functions.get(name).anchor
+            return self._functions.get(name)
         func = lookup_spark_function(name)
         if not func:
             raise LookupError(f'function name {name} does not have a known Substrait conversion')
@@ -38,7 +38,7 @@ class SparkSubstraitConverter:
         self._functions[name] = func
         if not self._function_uris.get(func.uri):
             self._function_uris[func.uri] = len(self._function_uris) + 1
-        return self._functions.get(name).anchor
+        return self._functions.get(name)
 
     def update_field_references(self, plan_id: int) -> None:
         """Uses the field references using the specified portion of the plan."""
@@ -153,14 +153,15 @@ class SparkSubstraitConverter:
             spark_exprs_pb2.Expression.UnresolvedFunction) -> algebra_pb2.Expression:
         """Converts a Spark unresolved function into a Substrait scalar function."""
         func = algebra_pb2.Expression.ScalarFunction()
-        func.function_reference = self.lookup_function_by_name(unresolved_function.function_name)
+        function_def = self.lookup_function_by_name(unresolved_function.function_name)
+        func.function_reference = function_def.anchor
         for arg in unresolved_function.arguments:
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
         if unresolved_function.is_distinct:
             raise NotImplementedError(
                 'Treating arguments as distinct is not supported for unresolved functions.')
-        # TODO -- Calculate the output_type.
+        func.output_type.CopyFrom(function_def.output_type)
         return algebra_pb2.Expression(scalar_function=func)
 
     def convert_alias_expression(
@@ -256,6 +257,7 @@ class SparkSubstraitConverter:
         # TODO -- Deal with potential denial of service due to malformed JSON.
         schema_data = json.loads(schema_str)
         schema = type_pb2.NamedStruct()
+        schema.struct.nullability=type_pb2.Type.NULLABILITY_REQUIRED
         for field in schema_data.get('fields'):
             schema.names.append(field.get('name'))
             if field.get('nullable'):

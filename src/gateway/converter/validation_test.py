@@ -8,6 +8,7 @@ import pytest
 from substrait.gen.proto import plan_pb2
 import substrait_validator
 
+
 test_case_directory = Path(os.path.dirname(os.path.realpath(__file__))) / 'data'
 
 test_case_paths = [f for f in test_case_directory.iterdir() if f.name.endswith('.splan')]
