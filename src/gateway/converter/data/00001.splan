@@ -311,6 +311,7 @@ relations {
                 }
                 measures {
                   measure {
+                    function_reference: 4
                     output_type {
                     }
                     arguments {
