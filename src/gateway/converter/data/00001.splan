@@ -352,3 +352,7 @@ relations {
     }
   }
 }
+version {
+  minor_number: 42
+  producer: "spark-substrait-gateway"
+}

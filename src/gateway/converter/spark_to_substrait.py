@@ -432,6 +432,8 @@ class SparkSubstraitConverter:
     def convert_plan(self, plan: spark_pb2.Plan) -> plan_pb2.Plan:
         """Converts a Spark plan into a Substrait plan."""
         result = plan_pb2.Plan()
+        result.version.CopyFrom(
+            plan_pb2.Version(minor_number=42, producer='spark-substrait-gateway'))
         if plan.HasField('root'):
             result.relations.append(plan_pb2.PlanRel(
                 root=algebra_pb2.RelRoot(input=self.convert_relation(plan.root))))
