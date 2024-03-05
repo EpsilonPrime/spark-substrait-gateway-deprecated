@@ -30,7 +30,7 @@ def find_diagnostic_message(issue):
     return 'unknown recognized error, check substrait-validator output'
 
 
-# pylint: disable=E1101
+# pylint: disable=E1101,fixme
 @pytest.mark.xfail
 @pytest.mark.parametrize(
     'path',
