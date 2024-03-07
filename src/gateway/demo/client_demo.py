@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """A PySpark client that can send a single query to the gateway."""
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import split, col, array_contains, sum as sum_func, desc
+from pyspark.sql.functions import regexp_extract_all, split, col, array_contains, sum as sum_func, desc, lit
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BooleanType
 
 
@@ -20,9 +20,9 @@ else:
         StructField("country_lastfm", StringType(), True),
         StructField("tags_mb", StringType(), True),
         StructField("tags_lastfm", StringType(), True),
-        StructField("listeners_lastfm", IntegerType(), True),
+        StructField("listeners_lastfm", IntegerType(), False),
         StructField("scrobbles_lastfm", IntegerType(), True),
-        StructField("ambiguous_artist", BooleanType(), True),
+        StructField("ambiguous_artist", BooleanType(), False),
     ])
 
 df_artists = spark.read.format("parquet") \
@@ -30,14 +30,8 @@ df_artists = spark.read.format("parquet") \
     .parquet("/Users/davids/Desktop/artists.parquet")
 
 # pylint: disable=singleton-comparison
-df_artists2 = \
-    df_artists.withColumn("tags_lastfm", split(col("tags_lastfm"), "; ")) \
-        .withColumn("listeners_lastfm", col("listeners_lastfm") \
-                    .cast(IntegerType())) \
-        .withColumn("ambiguous_artist", col("ambiguous_artist") \
-                    .cast(BooleanType())) \
+df_artists2 = df_artists \
         .filter(col("ambiguous_artist") == False) \
-        .filter(array_contains(col("tags_lastfm"), "pop")) \
         .groupBy("artist_lastfm") \
         .agg(sum_func("listeners_lastfm").alias("# of Listeners")) \
         .sort(desc("# of Listeners")) \

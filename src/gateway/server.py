@@ -30,7 +30,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         print(f"  results are: {results}")
         yield pb2.ExecutePlanResponse(
             session_id=request.session_id,
-            arrow_batch=pb2.ExecutePlanResponse.ArrowBatch(row_count=0, data=None))
+            arrow_batch=pb2.ExecutePlanResponse.ArrowBatch(row_count=results.num_rows,
+                                                           data=b''))
 
     def AnalyzePlan(self, request, context):
         print(f"AnalyzePlan: {request}")

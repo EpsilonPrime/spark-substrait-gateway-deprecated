@@ -30,22 +30,26 @@ class ExtensionFunction:
 # pylint: disable=E1101
 SPARK_SUBSTRAIT_MAPPING = {
     'split': ExtensionFunction(
-        '/functions_string.yaml', 'string_split:str_str', type_pb2.Type(
+        '/functions_string.yaml', 'string_split', type_pb2.Type(
             string=type_pb2.Type.String(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)),
         max_args=2),
     '==': ExtensionFunction(
-        '/functions_comparison.yaml', 'equal:str_str', type_pb2.Type(
+        '/functions_comparison.yaml', 'equal', type_pb2.Type(
             bool=type_pb2.Type.Boolean(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
     'array_contains': ExtensionFunction(
-        '/functions_set.yaml', 'index_in:str_liststr', type_pb2.Type(
+        '/functions_set.yaml', 'index_in', type_pb2.Type(
             bool=type_pb2.Type.Boolean(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
     'sum': ExtensionFunction(
-        '/functions_arithmetic.yaml', 'sum:int', type_pb2.Type(
+        '/functions_arithmetic.yaml', 'sum', type_pb2.Type(
             i32=type_pb2.Type.I32(
-                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
+    'regexp_extract_all': ExtensionFunction(
+        '/functions_string.yaml', 'regexp_match', type_pb2.Type(
+            list=type_pb2.Type.List(type=type_pb2.Type(string=type_pb2.Type.String(
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))
 }
 
 

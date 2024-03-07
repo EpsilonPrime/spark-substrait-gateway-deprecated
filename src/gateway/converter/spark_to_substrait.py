@@ -27,6 +27,10 @@ class SparkSubstraitConverter:
         self._functions: Dict[str, ExtensionFunction] = {}
         self._current_plan_id: int = None  # The relation currently being processed.
         self._symbol_table = SymbolTable()
+        self._use_named_table_workaround = True
+        self._needs_scheme_in_path_uris = False
+        self._use_project_emit_workaround = False
+        self._use_project_emit_workaround2 = False
 
     def lookup_function_by_name(self, name: str) -> ExtensionFunction:
         """Finds the function reference for a given Spark function name."""
@@ -310,8 +314,16 @@ class SparkSubstraitConverter:
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for field_name in schema.names:
             symbol.output_fields.append(field_name)
+        if self._use_named_table_workaround:
+            return algebra_pb2.Rel(read=algebra_pb2.ReadRel(base_schema=schema,
+                                                            named_table=algebra_pb2.ReadRel.NamedTable(
+                                                                names=['demotable'])))
         for path in rel.paths:
-            file_or_files = algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=path)
+            uri_path = path
+            if self._needs_scheme_in_path_uris:
+                if uri_path.startswith('/'):
+                    uri_path = "file:" + uri_path
+            file_or_files = algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=uri_path)
             match rel.format:
                 case 'parquet':
                     file_or_files.parquet.CopyFrom(
@@ -341,7 +353,15 @@ class SparkSubstraitConverter:
 
     def create_common_relation(self) -> algebra_pb2.RelCommon:
         """Creates the common metadata relation used by all relations."""
-        return algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct())
+        if True:
+            return algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct())
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        emit = algebra_pb2.RelCommon.Emit()
+        field_number = 0
+        for _ in symbol.output_fields:
+            emit.output_mapping.append(field_number)
+            field_number += 1
+        return algebra_pb2.RelCommon(emit=emit)
 
     def convert_read_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
         """Converts a read relation into a Substrait relation."""
@@ -361,6 +381,7 @@ class SparkSubstraitConverter:
         self.update_field_references(rel.input.common.plan_id)
         filter_rel.common.CopyFrom(self.create_common_relation())
         filter_rel.condition.CopyFrom(self.convert_expression(rel.condition))
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
         return algebra_pb2.Rel(filter=filter_rel)
 
     def convert_sort_relation(self, rel: spark_relations_pb2.Sort) -> algebra_pb2.Rel:
@@ -386,9 +407,10 @@ class SparkSubstraitConverter:
 
     def convert_limit_relation(self, rel: spark_relations_pb2.Limit) -> algebra_pb2.Rel:
         """Converts a limit relation into a Substrait FetchRel relation."""
-        fetch = algebra_pb2.FetchRel(common=self.create_common_relation(),
-                                     input=self.convert_relation(rel.input), count=rel.limit)
+        input = self.convert_relation(rel.input)
         self.update_field_references(rel.input.common.plan_id)
+        fetch = algebra_pb2.FetchRel(common=self.create_common_relation(), input=input,
+                                     count=rel.limit)
         return algebra_pb2.Rel(fetch=fetch)
 
     def convert_aggregate_relation(self, rel: spark_relations_pb2.Aggregate) -> algebra_pb2.Rel:
@@ -423,16 +445,34 @@ class SparkSubstraitConverter:
     def convert_with_columns_relation(
             self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
         """Converts a with columns relation into a Substrait project relation."""
-        project = algebra_pb2.ProjectRel(input=self.convert_relation(rel.input))
+        input_rel = self.convert_relation(rel.input)
+        project = algebra_pb2.ProjectRel(input=input_rel)
         self.update_field_references(rel.input.common.plan_id)
-        project.common.CopyFrom(self.create_common_relation())
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        field_number = 0
+        if self._use_project_emit_workaround:
+            for _ in symbol.output_fields:
+                project.expressions.append(algebra_pb2.Expression(
+                    selection=algebra_pb2.Expression.FieldReference(
+                        direct_reference=algebra_pb2.Expression.ReferenceSegment(
+                            struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
+                                field=field_number)))))
+            field_number += 1
         for alias in rel.aliases:
             # TODO -- Handle the common.emit.output_mapping columns correctly.
             project.expressions.append(self.convert_expression(alias.expr))
             # TODO -- Add unique intermediate names.
             symbol.generated_fields.append('intermediate')
             symbol.output_fields.append('intermediate')
+        project.common.CopyFrom(self.create_common_relation())
+        if self._use_project_emit_workaround or self._use_project_emit_workaround2:
+            field_number = 0
+            for _ in symbol.output_fields:
+                project.common.emit.output_mapping.append(field_number)
+                field_number += 1
+            for _ in rel.aliases:
+                project.common.emit.output_mapping.append(field_number)
+                field_number += 1
         return algebra_pb2.Rel(project=project)
 
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
