@@ -13,24 +13,26 @@ from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.adbc.backend import AdbcBackend
 
 
+def show_string(table: pyarrow.lib.Table) -> bytes:
+    """Converts a table into a byte serialized single row string column Arrow Table."""
+    results_str = str(table)
+    schema = pyarrow.schema([('show_string', pyarrow.string())])
+    array = pyarrow.array([results_str])
+    batch = pyarrow.RecordBatch.from_arrays([array], schema=schema)
+    result_table = pyarrow.Table.from_batches([batch])
+    buffer = io.BytesIO()
+    stream = pyarrow.RecordBatchStreamWriter(buffer, schema)
+    stream.write_table(result_table)
+    stream.close()
+    return buffer.getvalue()
+
+
 # pylint: disable=E1101
 class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     """Provides the SparkConnect service."""
 
     def __init__(self, *args, **kwargs):
         pass
-
-    def show_string(self, table):
-        results_str = str(table)
-        schema = pyarrow.schema([('show_string', pyarrow.string())])
-        array = pyarrow.array([results_str])
-        batch = pyarrow.RecordBatch.from_arrays([array], schema=schema)
-        result_table = pyarrow.Table.from_batches([batch])
-        buffer = io.BytesIO()
-        stream = pyarrow.RecordBatchStreamWriter(buffer, schema)
-        stream.write_table(result_table)
-        stream.close()
-        return buffer.getvalue()
 
     def ExecutePlan(
             self, request: pb2.ExecutePlanRequest, context: grpc.RpcContext) -> Generator[
@@ -46,7 +48,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         yield pb2.ExecutePlanResponse(
             session_id=request.session_id,
             arrow_batch=pb2.ExecutePlanResponse.ArrowBatch(row_count=results.num_rows,
-                                                           data=self.show_string(results)))
+                                                           data=show_string(results)))
 
     def AnalyzePlan(self, request, context):
         print(f"AnalyzePlan: {request}")

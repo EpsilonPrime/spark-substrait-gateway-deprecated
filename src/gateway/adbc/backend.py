@@ -2,7 +2,7 @@
 """Will eventually provide client access to an ADBC backend."""
 import duckdb
 import pyarrow
-import pyarrow.substrait as substrait
+from pyarrow import substrait
 from datafusion import SessionContext
 from datafusion import substrait as ds
 
@@ -29,7 +29,7 @@ class AdbcBackend:
     def execute_with_arrow(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Acero."""
         plan_data = plan.SerializeToString()
-        reader = pyarrow.substrait.run_query(plan_data)
+        reader = substrait.run_query(plan_data)
         query_result = reader.read_all()
         return query_result
 

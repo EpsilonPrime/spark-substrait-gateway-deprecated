@@ -163,8 +163,12 @@ relations {
                                             nullability: NULLABILITY_REQUIRED
                                           }
                                         }
-                                        named_table {
-                                          names: "demotable"
+                                        local_files {
+                                          items {
+                                            uri_file: "/Users/davids/Desktop/artists.parquet"
+                                            parquet {
+                                            }
+                                          }
                                         }
                                       }
                                     }
