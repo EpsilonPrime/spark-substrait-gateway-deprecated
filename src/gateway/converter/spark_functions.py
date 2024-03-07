@@ -5,8 +5,7 @@ from typing import Optional
 
 from substrait.gen.proto import type_pb2
 
-
-OPTION_RETURN_NAMES_WITH_TYPES = False
+from gateway.converter.conversion_options import ConversionOptions
 
 
 # pylint: disable=E1101
@@ -56,9 +55,9 @@ SPARK_SUBSTRAIT_MAPPING = {
 }
 
 
-def lookup_spark_function(name: str) -> ExtensionFunction:
+def lookup_spark_function(name: str, options: ConversionOptions) -> ExtensionFunction:
     """Returns a Substrait function given a spark function name."""
     definition = SPARK_SUBSTRAIT_MAPPING.get(name)
-    if not OPTION_RETURN_NAMES_WITH_TYPES:
+    if not options.return_names_with_types:
         definition.name = definition.name.split(':', 1)[0]
     return definition

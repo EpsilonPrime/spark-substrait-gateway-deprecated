@@ -34,7 +34,7 @@ class SparkSubstraitConverter:
         """Finds the function reference for a given Spark function name."""
         if name in self._functions:
             return self._functions.get(name)
-        func = lookup_spark_function(name)
+        func = lookup_spark_function(name, self._conversion_options)
         if not func:
             raise LookupError(f'function name {name} does not have a known Substrait conversion')
         func.anchor = len(self._functions) + 1
