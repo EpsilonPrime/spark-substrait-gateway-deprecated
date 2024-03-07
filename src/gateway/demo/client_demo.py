@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """A PySpark client that can send a single query to the gateway."""
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import regexp_extract_all, split, col, array_contains, sum as sum_func, desc, lit
+from pyspark.sql.functions import col, sum as sum_func, desc
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, BooleanType
 
 

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """SparkConnect server that drives a backend using Substrait."""
+import io
 from concurrent import futures
 from typing import Generator
 
 import grpc
+import pyarrow
 
 import spark.connect.base_pb2_grpc as pb2_grpc
 import spark.connect.base_pb2 as pb2
@@ -18,6 +20,18 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     def __init__(self, *args, **kwargs):
         pass
 
+    def show_string(self, table):
+        results_str = str(table)
+        schema = pyarrow.schema([('show_string', pyarrow.string())])
+        array = pyarrow.array([results_str])
+        batch = pyarrow.RecordBatch.from_arrays([array], schema=schema)
+        result_table = pyarrow.Table.from_batches([batch])
+        buffer = io.BytesIO()
+        stream = pyarrow.RecordBatchStreamWriter(buffer, schema)
+        stream.write_table(result_table)
+        stream.close()
+        return buffer.getvalue()
+
     def ExecutePlan(
             self, request: pb2.ExecutePlanRequest, context: grpc.RpcContext) -> Generator[
         pb2.ExecutePlanResponse, None, None]:
@@ -28,10 +42,11 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         backend = AdbcBackend()
         results = backend.execute(substrait)
         print(f"  results are: {results}")
+
         yield pb2.ExecutePlanResponse(
             session_id=request.session_id,
             arrow_batch=pb2.ExecutePlanResponse.ArrowBatch(row_count=results.num_rows,
-                                                           data=b''))
+                                                           data=self.show_string(results)))
 
     def AnalyzePlan(self, request, context):
         print(f"AnalyzePlan: {request}")
@@ -53,7 +68,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
 
     def ArtifactStatus(self, request, context):
         print("ArtifactStatus")
-        return pb2.ArtifictStatusResponse()
+        return pb2.ArtifactStatusResponse()
 
     def Interrupt(self, request, context):
         print("Interrupt")
