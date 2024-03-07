@@ -30,6 +30,7 @@ jobs:
         run: |
           $CONDA/bin/conda env update --file environment.yml --name base
           python -m pip install --upgrade pip
+          python -m pip install adbc_driver_manager substrait-validator
           python -m pip install ".[test]"
       - name: Run tests
         run: |
