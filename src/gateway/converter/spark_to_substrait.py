@@ -25,12 +25,13 @@ class SparkSubstraitConverter:
     def __init__(self):
         self._function_uris: Dict[str, int] = {}
         self._functions: Dict[str, ExtensionFunction] = {}
-        self._current_plan_id: int = None  # The relation currently being processed.
+        self._current_plan_id: Optional[int] = None  # The relation currently being processed.
         self._symbol_table = SymbolTable()
         self._use_named_table_workaround = True
         self._needs_scheme_in_path_uris = False
         self._use_project_emit_workaround = False
         self._use_project_emit_workaround2 = False
+        self._use_emits_instead_of_direct = False
 
     def lookup_function_by_name(self, name: str) -> ExtensionFunction:
         """Finds the function reference for a given Spark function name."""
@@ -353,7 +354,7 @@ class SparkSubstraitConverter:
 
     def create_common_relation(self) -> algebra_pb2.RelCommon:
         """Creates the common metadata relation used by all relations."""
-        if True:
+        if not self._use_emits_instead_of_direct:
             return algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct())
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         emit = algebra_pb2.RelCommon.Emit()
