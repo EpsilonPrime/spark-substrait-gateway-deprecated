@@ -27,7 +27,7 @@ class SparkSubstraitConverter:
         self._functions: Dict[str, ExtensionFunction] = {}
         self._current_plan_id: Optional[int] = None  # The relation currently being processed.
         self._symbol_table = SymbolTable()
-        self._use_named_table_workaround = True
+        self._use_named_table_workaround = False
         self._needs_scheme_in_path_uris = False
         self._use_project_emit_workaround = False
         self._use_project_emit_workaround2 = False

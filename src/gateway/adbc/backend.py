@@ -23,14 +23,15 @@ class AdbcBackend:
         con.load_extension('substrait')
         plan_data = plan.SerializeToString()
         query_result = con.from_substrait(proto=plan_data)
-        return f'{query_result}'
+        df = query_result.df()
+        return pyarrow.Table.from_pandas(df=df)
 
     def execute_with_arrow(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Acero."""
         plan_data = plan.SerializeToString()
         reader = pyarrow.substrait.run_query(plan_data)
         query_result = reader.read_all()
-        return f'{query_result}'
+        return query_result
 
     def execute_with_datafusion(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Datafusion."""
@@ -50,4 +51,4 @@ class AdbcBackend:
     def execute(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan."""
         # TODO -- Make configurable.
-        return self.execute_with_datafusion(plan)
+        return self.execute_with_duckdb(plan)
