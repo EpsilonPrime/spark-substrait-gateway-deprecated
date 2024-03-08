@@ -18,3 +18,5 @@ dependencies:
     - adbc_driver_manager
     - pyarrow
     - duckdb
+    - datafusion
+    - pyspark
