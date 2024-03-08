@@ -18,8 +18,8 @@ jobs:
       run: |
         $CONDA/bin/conda env update --file environment.yml --name base
         python -m pip install --upgrade pip
-        python -m pip install adbc_driver_manager substrait-validator python-substrait
-        conda install pylint">=3.1.0"
+        python -m pip install adbc_driver_manager substrait-validator
+        $CONDA/bin/conda install pylint">=3.1.0"
     - name: Analysing the code with pylint
       run: |
         $CONDA/bin/pylint $(git ls-files '*.py')
