@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Will eventually provide client access to an ADBC backend."""
+import adbc_driver_duckdb.dbapi
 import duckdb
 import pyarrow
 from pyarrow import substrait
@@ -16,6 +17,14 @@ class AdbcBackend:
 
     def __init__(self):
         pass
+
+    def execute_with_duckdb_over_adbc(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
+        """Executes the given Substrait plan against DuckDB using ADBC."""
+        with adbc_driver_duckdb.dbapi.connect() as conn, conn.cursor() as cur:
+            plan_data = plan.SerializeToString()
+            cur.adbc_statement.set_substrait_plan(plan_data)
+            tbl = cur.fetch_arrow_table()
+            return tbl
 
     def execute_with_duckdb(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against DuckDB."""
@@ -57,6 +66,8 @@ class AdbcBackend:
             case Backend.DATAFUSION:
                 return self.execute_with_datafusion(plan)
             case Backend.DUCKDB:
+                if options.use_adbc:
+                    return self.execute_with_duckdb_over_adbc(plan)
                 return self.execute_with_duckdb(plan)
             case _:
                 raise ValueError('unknown backend requested')

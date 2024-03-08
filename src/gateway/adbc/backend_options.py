@@ -14,6 +14,8 @@ class Backend(Enum):
 class BackendOptions:
     """Holds all the possible backend options."""
     backend: Backend
+    use_adbc: bool
 
     def __init__(self):
         self.backend = Backend.DUCKDB
+        self.use_adbc = False
