@@ -16,3 +16,6 @@ dependencies:
   - types-protobuf
   - pyarrow
   - duckdb
+  - pip:
+    - adbc_driver_manager
+    - python-substrait
