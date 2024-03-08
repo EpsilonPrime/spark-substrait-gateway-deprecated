@@ -16,6 +16,6 @@ class BackendOptions:
     backend: Backend
     use_adbc: bool
 
-    def __init__(self):
-        self.backend = Backend.DUCKDB
-        self.use_adbc = False
+    def __init__(self, backend: Backend, use_adbc: bool = False):
+        self.backend = backend
+        self.use_adbc = use_adbc

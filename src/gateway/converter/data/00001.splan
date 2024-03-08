@@ -18,28 +18,28 @@ extensions {
   extension_function {
     extension_uri_reference: 2
     function_anchor: 2
-    name: "equal"
+    name: "equal:str_str"
   }
 }
 extensions {
   extension_function {
     extension_uri_reference: 3
     function_anchor: 3
-    name: "index_in"
+    name: "index_in:str_list<str>"
   }
 }
 extensions {
   extension_function {
     extension_uri_reference: 1
     function_anchor: 1
-    name: "string_split"
+    name: "string_split:str_str"
   }
 }
 extensions {
   extension_function {
     extension_uri_reference: 4
     function_anchor: 4
-    name: "sum"
+    name: "sum:int"
   }
 }
 relations {

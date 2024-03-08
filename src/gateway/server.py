@@ -9,8 +9,9 @@ import pyarrow
 
 import spark.connect.base_pb2_grpc as pb2_grpc
 import spark.connect.base_pb2 as pb2
+from gateway.converter.conversion_options import DuckDB
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
-from gateway.adbc.backend import AdbcBackend, BackendOptions
+from gateway.adbc.backend import AdbcBackend
 
 
 def show_string(table: pyarrow.lib.Table) -> bytes:
@@ -33,17 +34,18 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
 
     # pylint: disable=unused-argument
     def __init__(self, *args, **kwargs):
-        self._backend_options = BackendOptions()
+        # This is the central point for configuring the behavior of the service.
+        self._options = DuckDB()
 
     def ExecutePlan(
             self, request: pb2.ExecutePlanRequest, context: grpc.RpcContext) -> Generator[
         pb2.ExecutePlanResponse, None, None]:
         print(f"ExecutePlan: {request}")
-        convert = SparkSubstraitConverter()
+        convert = SparkSubstraitConverter(self._options)
         substrait = convert.convert_plan(request.plan)
         print(f"  as Substrait: {substrait}")
         backend = AdbcBackend()
-        results = backend.execute(substrait, self._backend_options)
+        results = backend.execute(substrait, self._options.backend)
         print(f"  results are: {results}")
 
         yield pb2.ExecutePlanResponse(

@@ -23,12 +23,12 @@ from gateway.converter.symbol_table import SymbolTable
 class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
 
-    def __init__(self):
+    def __init__(self, options: ConversionOptions):
         self._function_uris: Dict[str, int] = {}
         self._functions: Dict[str, ExtensionFunction] = {}
         self._current_plan_id: Optional[int] = None  # The relation currently being processed.
         self._symbol_table = SymbolTable()
-        self._conversion_options = ConversionOptions()
+        self._conversion_options = options
 
     def lookup_function_by_name(self, name: str) -> ExtensionFunction:
         """Finds the function reference for a given Spark function name."""

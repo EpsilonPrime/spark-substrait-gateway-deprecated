@@ -2,6 +2,8 @@
 """Tracks conversion related options."""
 import dataclasses
 
+from gateway.adbc.backend_options import BackendOptions, Backend
+
 
 @dataclasses.dataclass
 class ConversionOptions:
@@ -22,3 +24,17 @@ class ConversionOptions:
         self.use_emits_instead_of_direct = False
 
         self.return_names_with_types = False
+
+
+def Datafusion():
+    options = ConversionOptions()
+    options.backend = BackendOptions(Backend.DATAFUSION)
+    options.use_named_table_workaround = True
+    return options
+
+
+def DuckDB():
+    options = ConversionOptions()
+    options.backend = BackendOptions(Backend.DUCKDB)
+    options.return_names_with_types = True
+    return options
