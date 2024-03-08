@@ -8,7 +8,7 @@ from datafusion import substrait as ds
 
 from substrait.gen.proto import plan_pb2
 
-from gateway.adbc.backend_options import BackendOptions
+from gateway.adbc.backend_options import BackendOptions, Backend
 
 
 class AdbcBackend:
@@ -51,12 +51,12 @@ class AdbcBackend:
 
     def execute(self, plan: 'plan_pb2.Plan', options: BackendOptions) -> pyarrow.lib.Table:
         """Executes the given Substrait plan."""
-        match options.backend_name:
-            case 'arrow':
+        match options.backend:
+            case Backend.ARROW:
                 return self.execute_with_arrow(plan)
-            case 'datafusion':
+            case Backend.DATAFUSION:
                 return self.execute_with_datafusion(plan)
-            case 'duckdb':
+            case Backend.DUCKDB:
                 return self.execute_with_duckdb(plan)
             case _:
                 raise ValueError('unknown backend requested')
