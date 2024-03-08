@@ -18,4 +18,3 @@ dependencies:
   - duckdb
   - pip:
     - adbc_driver_manager
-    - python-substrait
