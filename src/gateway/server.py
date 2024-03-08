@@ -31,6 +31,7 @@ def show_string(table: pyarrow.lib.Table) -> bytes:
 class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     """Provides the SparkConnect service."""
 
+    # pylint: disable=unused-argument
     def __init__(self, *args, **kwargs):
         self._backend_options = BackendOptions()
 
