@@ -16,7 +16,7 @@ class ConversionOptions:
 
     return_names_with_types: bool
 
-    def __init__(self):
+    def __init__(self, backend: BackendOptions = None):
         self.use_named_table_workaround = False
         self.needs_scheme_in_path_uris = False
         self.use_project_emit_workaround = False
@@ -25,16 +25,18 @@ class ConversionOptions:
 
         self.return_names_with_types = False
 
+        self.backend = backend
 
-def Datafusion():
-    options = ConversionOptions()
-    options.backend = BackendOptions(Backend.DATAFUSION)
+
+def datafusion():
+    """Standard options to connect to a Datafusion backend."""
+    options = ConversionOptions(backend=BackendOptions(Backend.DATAFUSION))
     options.use_named_table_workaround = True
     return options
 
 
-def DuckDB():
-    options = ConversionOptions()
-    options.backend = BackendOptions(Backend.DUCKDB)
+def duck_db():
+    """Standard options to connect to a DuckDB backend."""
+    options = ConversionOptions(backend=BackendOptions(Backend.DUCKDB))
     options.return_names_with_types = True
     return options

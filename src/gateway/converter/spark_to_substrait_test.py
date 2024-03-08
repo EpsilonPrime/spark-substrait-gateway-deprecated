@@ -7,7 +7,7 @@ from google.protobuf import text_format
 import pytest
 from substrait.gen.proto import plan_pb2
 
-from gateway.converter.conversion_options import DuckDB
+from gateway.converter.conversion_options import duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from spark.connect import base_pb2 as spark_base_pb2
 
@@ -37,7 +37,7 @@ def test_plan_conversion(request, path):
         splan_prototext = file.read()
     substrait_plan = text_format.Parse(splan_prototext, plan_pb2.Plan())
 
-    convert = SparkSubstraitConverter(DuckDB())
+    convert = SparkSubstraitConverter(duck_db())
     substrait = convert.convert_plan(spark_plan)
 
     if request.config.getoption('rebuild_goldens'):

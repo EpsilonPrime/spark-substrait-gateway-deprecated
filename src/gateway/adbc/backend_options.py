@@ -5,6 +5,7 @@ from enum import Enum
 
 
 class Backend(Enum):
+    """Represents the different backends we have support for."""
     ARROW = 1
     DATAFUSION = 2
     DUCKDB = 3

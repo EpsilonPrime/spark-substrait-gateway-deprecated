@@ -9,7 +9,7 @@ import pyarrow
 
 import spark.connect.base_pb2_grpc as pb2_grpc
 import spark.connect.base_pb2 as pb2
-from gateway.converter.conversion_options import DuckDB
+from gateway.converter.conversion_options import duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.adbc.backend import AdbcBackend
 
@@ -35,7 +35,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     # pylint: disable=unused-argument
     def __init__(self, *args, **kwargs):
         # This is the central point for configuring the behavior of the service.
-        self._options = DuckDB()
+        self._options = duck_db()
 
     def ExecutePlan(
             self, request: pb2.ExecutePlanRequest, context: grpc.RpcContext) -> Generator[
