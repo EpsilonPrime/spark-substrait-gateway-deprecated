@@ -10,7 +10,7 @@ import pyarrow
 import spark.connect.base_pb2_grpc as pb2_grpc
 import spark.connect.base_pb2 as pb2
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
-from gateway.adbc.backend import AdbcBackend
+from gateway.adbc.backend import AdbcBackend, BackendOptions
 
 
 def show_string(table: pyarrow.lib.Table) -> bytes:
@@ -32,7 +32,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     """Provides the SparkConnect service."""
 
     def __init__(self, *args, **kwargs):
-        pass
+        self._backend_options = BackendOptions()
 
     def ExecutePlan(
             self, request: pb2.ExecutePlanRequest, context: grpc.RpcContext) -> Generator[
@@ -42,7 +42,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         substrait = convert.convert_plan(request.plan)
         print(f"  as Substrait: {substrait}")
         backend = AdbcBackend()
-        results = backend.execute(substrait)
+        results = backend.execute(substrait, self._backend_options)
         print(f"  results are: {results}")
 
         yield pb2.ExecutePlanResponse(

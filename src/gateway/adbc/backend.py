@@ -8,8 +8,9 @@ from datafusion import substrait as ds
 
 from substrait.gen.proto import plan_pb2
 
+from gateway.adbc.backend_options import BackendOptions
 
-# pylint: disable=fixme
+
 class AdbcBackend:
     """Provides methods for contacting an ADBC backend via Substrait."""
 
@@ -48,7 +49,14 @@ class AdbcBackend:
         df_result = ctx.create_dataframe_from_logical_plan(logical_plan)
         return df_result.to_arrow_table()
 
-    def execute(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
+    def execute(self, plan: 'plan_pb2.Plan', options: BackendOptions) -> pyarrow.lib.Table:
         """Executes the given Substrait plan."""
-        # TODO -- Make configurable.
-        return self.execute_with_duckdb(plan)
+        match options.backend_name:
+            case 'arrow':
+                return self.execute_with_arrow(plan)
+            case 'datafusion':
+                return self.execute_with_datafusion(plan)
+            case 'duckdb':
+                return self.execute_with_duckdb(plan)
+            case _:
+                raise ValueError('unknown backend requested')
