@@ -20,5 +20,5 @@ dependencies:
     - pyarrow
     - duckdb
     - datafusion
-    - pyspark == 3.4.2
+    - pyspark == 3.4.1
     - substrait-validator
