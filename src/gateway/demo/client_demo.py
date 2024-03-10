@@ -11,8 +11,10 @@ from gateway.demo.mystream_database import create_mystream_database, delete_myst
 from gateway.demo.mystream_database import get_mystream_schema
 
 
+# pylint: disable=fixme
 def execute_query() -> None:
     """Runs a single sample query against the gateway."""
+    # TODO -- Make this configurable.
     spark = SparkSession.builder.remote('sc://localhost:50051').getOrCreate()
 
     users_location = str(Path('users.parquet').absolute())
