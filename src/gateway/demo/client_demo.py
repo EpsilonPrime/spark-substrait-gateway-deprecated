@@ -10,24 +10,17 @@ from pyspark.sql.pandas.types import from_arrow_schema
 from gateway.demo.mystream_database import create_mystream_database, delete_mystream_database
 from gateway.demo.mystream_database import get_mystream_schema
 
-# The gateway currently does not support determining the schema from a dataset.
-USE_SCHEMA_DETECTION = False
-
 
 def execute_query() -> None:
     """Runs a single sample query against the gateway."""
     spark = SparkSession.builder.remote('sc://localhost:50051').getOrCreate()
 
-    users_dir = str(Path('users.parquet').absolute())
-
-    if USE_SCHEMA_DETECTION:
-        schema_users = spark.read.parquet(users_dir).schema
-    else:
-        schema_users = get_mystream_schema('users')
+    users_location = str(Path('users.parquet').absolute())
+    schema_users = get_mystream_schema('users')
 
     df_users = spark.read.format('parquet') \
         .schema(from_arrow_schema(schema_users)) \
-        .parquet(users_dir)
+        .parquet(users_location)
 
     # pylint: disable=singleton-comparison
     df_users2 = df_users \
