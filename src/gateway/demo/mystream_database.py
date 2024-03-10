@@ -63,11 +63,6 @@ def make_users_database():
                         compression='NONE')
 
 
-TABLE_CREATION = {
-    'users': make_users_database,
-}
-
-
 def create_mystream_database() -> Path:
     """Creates all the tables that make up the mystream database."""
     Faker.seed(9999)
