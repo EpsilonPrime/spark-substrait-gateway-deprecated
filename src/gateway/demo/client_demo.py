@@ -4,7 +4,7 @@ import atexit
 from pathlib import Path
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, desc
+from pyspark.sql.functions import col, desc, substring
 from pyspark.sql.pandas.types import from_arrow_schema
 
 from gateway.demo.mystream_database import create_mystream_database, delete_mystream_database
@@ -25,8 +25,10 @@ def execute_query() -> None:
         .parquet(users_location)
 
     # pylint: disable=singleton-comparison
+    #dataFrame.select(col("a"), substring_index(col("a"), ",", 1). as ("b"))
     df_users2 = df_users \
         .filter(col('paid_for_service') == True) \
+        .withColumn('user_id', substring(col('user_id'), 4, 9)) \
         .sort(desc('name')) \
         .limit(10)
 

@@ -80,12 +80,13 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         print("Interrupt")
         return pb2.InterruptResponse()
 
-    def ReattachExecute(self, request: pb2.ReattachExecuteRequest, context: grpc.RpcContext) -> \
-    Generator[pb2.ExecutePlanResponse, None, None]:
+    def ReattachExecute(
+            self, request: pb2.ReattachExecuteRequest, context: grpc.RpcContext) -> Generator[
+        pb2.ExecutePlanResponse, None, None]:
         print("ReattachExecute")
         yield pb2.ExecutePlanResponse(
-           session_id=request.session_id,
-           result_complete=pb2.ExecutePlanResponse.ResultComplete())
+            session_id=request.session_id,
+            result_complete=pb2.ExecutePlanResponse.ResultComplete())
 
     def ReleaseExecute(self, request, context):
         print("ReleaseExecute")
