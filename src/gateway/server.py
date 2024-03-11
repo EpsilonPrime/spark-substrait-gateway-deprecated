@@ -54,7 +54,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                                                            data=show_string(results)))
         yield pb2.ExecutePlanResponse(
             session_id=request.session_id,
-            request_complete=ExecutePlanResponse.RequestComplete())
+            request_complete=pb2.ExecutePlanResponse.RequestComplete())
 
     def AnalyzePlan(self, request, context):
         print(f"AnalyzePlan: {request}")
