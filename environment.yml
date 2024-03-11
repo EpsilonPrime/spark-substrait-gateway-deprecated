@@ -6,6 +6,7 @@ dependencies:
   - pre-commit
   - protobuf >= 4.21.6
   - grpcio >= 1.48.1
+  - grpcio-status
   - grpcio-tools
   - pytest >= 7.0.0
   - python >= 3.8.1
@@ -21,4 +22,5 @@ dependencies:
     - duckdb
     - datafusion
     - pyspark
+    - pandas >= 1.0.5
     - substrait-validator
