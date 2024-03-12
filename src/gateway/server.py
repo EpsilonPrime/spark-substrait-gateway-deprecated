@@ -101,8 +101,8 @@ def serve(port: int, wait: bool = True):
     server.start()
     if wait:
         server.wait_for_termination()
-    else:
-        return server
+        return None
+    return server
 
 
 if __name__ == '__main__':

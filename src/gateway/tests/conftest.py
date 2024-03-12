@@ -79,6 +79,7 @@ def spark_session(request):
             raise NotImplementedError(f'No such session implemented: {request.param}')
     yield from session_generator
 
+
 # pylint: disable=redefined-outer-name
 @pytest.fixture(scope='function')
 def users_dataframe(spark_session, schema_users, users_location):
