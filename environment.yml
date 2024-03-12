@@ -4,11 +4,12 @@ channels:
 dependencies:
   - pip
   - pre-commit
+  - protobuf >= 4.21.6
   - grpcio >= 1.48.1
   - grpcio-status
   - grpcio-tools
   - pytest >= 7.0.0
-  - python >= 3.10.0
+  - python >= 3.8.1
   - setuptools >= 61.0.0
   - setuptools_scm >= 6.2.0
   - python-substrait
