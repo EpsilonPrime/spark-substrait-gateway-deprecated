@@ -30,7 +30,7 @@ def _create_gateway_session():
     spark = (
         SparkSession
         .builder
-        .remote('sc://localhost:50051')
+        .remote('sc://localhost:50052')
         .appName('gateway')
         .getOrCreate()
     )
@@ -67,13 +67,13 @@ def schema_users():
     return get_mystream_schema('users')
 
 
-@pytest.fixture(scope='module', params=['spark', 'gateway-over-duckdb:'])
+@pytest.fixture(scope='module', params=['spark', 'gateway-over-duckdb'])
 def spark_session(request):
     """Provides spark sessions connecting to various backends."""
     match request.param:
         case 'spark':
             session_generator = _create_local_spark_session()
-        case 'gateway-over-duckdb:':
+        case 'gateway-over-duckdb':
             session_generator = _create_gateway_session()
         case _:
             raise NotImplementedError(f'No such session implemented: {request.param}')
@@ -84,6 +84,6 @@ def spark_session(request):
 @pytest.fixture(scope='function')
 def users_dataframe(spark_session, schema_users, users_location):
     """Provides a ready to go dataframe over the users database."""
-    spark_session.read.format('parquet') \
+    return spark_session.read.format('parquet') \
         .schema(from_arrow_schema(schema_users)) \
         .parquet(users_location)
