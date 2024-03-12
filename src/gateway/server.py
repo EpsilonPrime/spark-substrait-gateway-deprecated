@@ -93,14 +93,17 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         return pb2.ReleaseExecuteResponse()
 
 
-def serve():
+def serve(port: int, wait: bool = True):
     """Starts the SparkConnect to Substrait gateway server."""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb2_grpc.add_SparkConnectServiceServicer_to_server(SparkConnectService(), server)
-    server.add_insecure_port('[::]:50051')
+    server.add_insecure_port(f'[::]:{port}')
     server.start()
-    server.wait_for_termination()
+    if wait:
+        server.wait_for_termination()
+    else:
+        return server
 
 
 if __name__ == '__main__':
-    serve()
+    serve(50051)
