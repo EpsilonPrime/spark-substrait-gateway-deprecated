@@ -13,10 +13,24 @@ class TestDataFrameAPI:
         outcome = users_dataframe.filter(col('paid_for_service') == True).collect()
         assert len(outcome) == 29
 
+    def test_count(self, users_dataframe):
+        outcome = users_dataframe.count()
+        assert outcome == 100
+
     def test_with_column(self, users_dataframe, spark_session):
         expected = spark_session.createDataFrame(
             data=[('849118289', 'Brooke Jones', False)],
             schema=['user_id', 'name', 'paid_for_service'])
         outcome = users_dataframe.withColumn('user_id', substring(col('user_id'), 5, 9)).limit(
+            1).collect()
+        assertDataFrameEqual(outcome, expected)
+
+    def test_cast(self, users_dataframe, spark_session):
+        expected = spark_session.createDataFrame(
+            data=[(849, 'Brooke Jones', False)],
+            schema=['user_id', 'name', 'paid_for_service'])
+        outcome = users_dataframe.withColumn(
+            'user_id',
+            substring(col('user_id'), 5, 3).cast('integer')).limit(
             1).collect()
         assertDataFrameEqual(outcome, expected)

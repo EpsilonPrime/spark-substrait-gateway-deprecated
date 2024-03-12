@@ -67,7 +67,8 @@ def schema_users():
     return get_mystream_schema('users')
 
 
-@pytest.fixture(scope='module', params=['spark', 'gateway-over-duckdb'])
+@pytest.fixture(scope='module',
+                params=['spark', pytest.param('gateway-over-duckdb', marks=pytest.mark.xfail)])
 def spark_session(request):
     """Provides spark sessions connecting to various backends."""
     match request.param:

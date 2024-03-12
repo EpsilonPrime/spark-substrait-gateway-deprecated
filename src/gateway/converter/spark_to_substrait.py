@@ -438,6 +438,10 @@ class SparkSubstraitConverter:
         # TODO -- Implement using num_rows, truncate, and vertical.
         result = self.convert_relation(rel.input)
         self.update_field_references(rel.input.common.plan_id)
+        # TODO -- Pull the columns from symbol.input_fields.
+        # TODO -- Use a project to output a single field with the table info in it.
+        # TODO -- Update the output field mapping to only contain that single row.
+        # TODO -- Name that output field 'show_string'.
         return result
 
     def convert_with_columns_relation(
