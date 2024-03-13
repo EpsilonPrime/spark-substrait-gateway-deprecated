@@ -6,8 +6,7 @@ import adbc_driver_duckdb.dbapi
 import duckdb
 import pyarrow
 from pyarrow import substrait
-from datafusion import SessionContext
-from datafusion import substrait as ds
+import datafusion.substrait
 
 from substrait.gen.proto import plan_pb2
 
@@ -49,13 +48,13 @@ class AdbcBackend:
 
     def execute_with_datafusion(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Datafusion."""
-        ctx = SessionContext()
+        ctx = datafusion.SessionContext()
         # TODO -- Handle registration by scanning and then rewriting the plan.
         ctx.register_parquet("demotable", 'artists.parquet')
 
         plan_data = plan.SerializeToString()
-        substrait_plan = ds.substrait.serde.deserialize_bytes(plan_data)
-        logical_plan = ds.substrait.consumer.from_substrait_plan(
+        substrait_plan = datafusion.substrait.substrait.serde.deserialize_bytes(plan_data)
+        logical_plan = datafusion.substrait.substrait.consumer.from_substrait_plan(
             ctx, substrait_plan
         )
 
