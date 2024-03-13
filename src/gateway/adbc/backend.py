@@ -6,7 +6,7 @@ import adbc_driver_duckdb.dbapi
 import duckdb
 import pyarrow
 from pyarrow import substrait
-import datafusion.substrait
+# import datafusion.substrait
 
 from substrait.gen.proto import plan_pb2
 
@@ -46,6 +46,7 @@ class AdbcBackend:
         query_result = reader.read_all()
         return query_result
 
+    '''
     def execute_with_datafusion(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Datafusion."""
         ctx = datafusion.SessionContext()
@@ -61,6 +62,7 @@ class AdbcBackend:
         # Create a DataFrame from a deserialized logical plan
         df_result = ctx.create_dataframe_from_logical_plan(logical_plan)
         return df_result.to_arrow_table()
+    '''
 
     def execute(self, plan: 'plan_pb2.Plan', options: BackendOptions) -> pyarrow.lib.Table:
         """Executes the given Substrait plan."""
