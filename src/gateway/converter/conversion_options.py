@@ -41,5 +41,4 @@ def duck_db():
     """Standard options to connect to a DuckDB backend."""
     options = ConversionOptions(backend=BackendOptions(Backend.DUCKDB))
     options.return_names_with_types = True
-    # options.use_project_emit_workaround = True
     return options

@@ -24,7 +24,6 @@ def execute_query(spark_session: SparkSession) -> None:
     # pylint: disable=singleton-comparison
     df_users2 = df_users \
         .filter(col('paid_for_service') == True) \
-        .withColumn('user_id', substring(col('user_id'), 5, 9)) \
         .sort(col('user_id')) \
         .limit(10)
 

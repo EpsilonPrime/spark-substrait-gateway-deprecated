@@ -14,6 +14,20 @@ from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.adbc.backend import AdbcBackend
 
 
+def show_string(table: pyarrow.lib.Table) -> bytes:
+    """Converts a table into a byte serialized single row string column Arrow Table."""
+    results_str = str(table)
+    schema = pyarrow.schema([('show_string', pyarrow.string())])
+    array = pyarrow.array([results_str])
+    batch = pyarrow.RecordBatch.from_arrays([array], schema=schema)
+    result_table = pyarrow.Table.from_batches([batch])
+    buffer = io.BytesIO()
+    stream = pyarrow.RecordBatchStreamWriter(buffer, schema)
+    stream.write_table(result_table)
+    stream.close()
+    return buffer.getvalue()
+
+
 def batch_to_bytes(batch: pyarrow.RecordBatch, schema: pyarrow.Schema) -> bytes:
     """Serializes a RecordBatch into a bytes."""
     result_table = pyarrow.Table.from_batches(batches=[batch])
@@ -43,6 +57,13 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         backend = AdbcBackend()
         results = backend.execute(substrait, self._options.backend)
         print(f"  results are: {results}")
+
+        if not self._options.implement_show_string:
+            yield pb2.ExecutePlanResponse(
+                session_id=request.session_id,
+                arrow_batch=pb2.ExecutePlanResponse.ArrowBatch(row_count=results.num_rows,
+                                                               data=show_string(results)))
+            return
 
         for batch in results.to_batches():
             yield pb2.ExecutePlanResponse(session_id=request.session_id,
