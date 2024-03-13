@@ -17,6 +17,7 @@ def _create_local_spark_session():
         SparkSession
         .builder
         .master('local')
+        .config("spark.driver.bindAddress", "127.0.0.1")
         .appName('gateway')
         .getOrCreate()
     )
@@ -31,6 +32,7 @@ def _create_gateway_session():
         SparkSession
         .builder
         .remote('sc://localhost:50052')
+        .config("spark.driver.bindAddress", "127.0.0.1")
         .appName('gateway')
         .getOrCreate()
     )
