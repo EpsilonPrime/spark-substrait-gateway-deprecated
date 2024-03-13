@@ -13,6 +13,20 @@ class TestDataFrameAPI:
         outcome = users_dataframe.filter(col('paid_for_service') == True).collect()
         assert len(outcome) == 29
 
+    # pylint: disable=singleton-comparison
+    def test_filter_with_show(self, users_dataframe, capsys):
+        expected = '''+-------------+------------+----------------+
+|      user_id|        name|paid_for_service|
++-------------+------------+----------------+
+|user669344115|Joshua Brown|            true|
++-------------+------------+----------------+
+only showing top 1 row
+
+'''
+        users_dataframe.filter(col('paid_for_service') == True).show(1)
+        outcome = capsys.readouterr().out
+        assert outcome == expected
+
     def test_count(self, users_dataframe):
         outcome = users_dataframe.count()
         assert outcome == 100

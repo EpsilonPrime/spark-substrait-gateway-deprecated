@@ -45,25 +45,26 @@ extensions {
 relations {
   root {
     input {
-      fetch {
+      project {
         common {
-          direct {
+          emit {
+            output_mapping: 2
           }
         }
         input {
-          sort {
+          fetch {
             common {
               direct {
               }
             }
             input {
-              aggregate {
+              sort {
                 common {
                   direct {
                   }
                 }
                 input {
-                  filter {
+                  aggregate {
                     common {
                       direct {
                       }
@@ -75,7 +76,7 @@ relations {
                           }
                         }
                         input {
-                          project {
+                          filter {
                             common {
                               direct {
                               }
@@ -93,110 +94,138 @@ relations {
                                       }
                                     }
                                     input {
-                                      read {
+                                      project {
                                         common {
                                           direct {
                                           }
                                         }
-                                        base_schema {
-                                          names: "mbid"
-                                          names: "artist_mb"
-                                          names: "artist_lastfm"
-                                          names: "country_mb"
-                                          names: "country_lastfm"
-                                          names: "tags_mb"
-                                          names: "tags_lastfm"
-                                          names: "listeners_lastfm"
-                                          names: "scrobbles_lastfm"
-                                          names: "ambiguous_artist"
-                                          struct {
-                                            types {
+                                        input {
+                                          read {
+                                            common {
+                                              direct {
+                                              }
+                                            }
+                                            base_schema {
+                                              names: "mbid"
+                                              names: "artist_mb"
+                                              names: "artist_lastfm"
+                                              names: "country_mb"
+                                              names: "country_lastfm"
+                                              names: "tags_mb"
+                                              names: "tags_lastfm"
+                                              names: "listeners_lastfm"
+                                              names: "scrobbles_lastfm"
+                                              names: "ambiguous_artist"
+                                              struct {
+                                                types {
+                                                  string {
+                                                    nullability: NULLABILITY_REQUIRED
+                                                  }
+                                                }
+                                                types {
+                                                  string {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  string {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  string {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  string {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  string {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  string {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  i32 {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  i32 {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                types {
+                                                  bool {
+                                                    nullability: NULLABILITY_NULLABLE
+                                                  }
+                                                }
+                                                nullability: NULLABILITY_REQUIRED
+                                              }
+                                            }
+                                            local_files {
+                                              items {
+                                                uri_file: "/Users/davids/Desktop/artists.parquet"
+                                                parquet {
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                        expressions {
+                                          scalar_function {
+                                            function_reference: 1
+                                            output_type {
                                               string {
                                                 nullability: NULLABILITY_REQUIRED
                                               }
                                             }
-                                            types {
-                                              string {
-                                                nullability: NULLABILITY_NULLABLE
+                                            arguments {
+                                              value {
+                                                selection {
+                                                  direct_reference {
+                                                    struct_field {
+                                                      field: 6
+                                                    }
+                                                  }
+                                                  root_reference {
+                                                  }
+                                                }
                                               }
                                             }
-                                            types {
-                                              string {
-                                                nullability: NULLABILITY_NULLABLE
+                                            arguments {
+                                              value {
+                                                literal {
+                                                  string: "; "
+                                                }
                                               }
-                                            }
-                                            types {
-                                              string {
-                                                nullability: NULLABILITY_NULLABLE
-                                              }
-                                            }
-                                            types {
-                                              string {
-                                                nullability: NULLABILITY_NULLABLE
-                                              }
-                                            }
-                                            types {
-                                              string {
-                                                nullability: NULLABILITY_NULLABLE
-                                              }
-                                            }
-                                            types {
-                                              string {
-                                                nullability: NULLABILITY_NULLABLE
-                                              }
-                                            }
-                                            types {
-                                              i32 {
-                                                nullability: NULLABILITY_NULLABLE
-                                              }
-                                            }
-                                            types {
-                                              i32 {
-                                                nullability: NULLABILITY_NULLABLE
-                                              }
-                                            }
-                                            types {
-                                              bool {
-                                                nullability: NULLABILITY_NULLABLE
-                                              }
-                                            }
-                                            nullability: NULLABILITY_REQUIRED
-                                          }
-                                        }
-                                        local_files {
-                                          items {
-                                            uri_file: "/Users/davids/Desktop/artists.parquet"
-                                            parquet {
                                             }
                                           }
                                         }
                                       }
                                     }
                                     expressions {
-                                      scalar_function {
-                                        function_reference: 1
-                                        output_type {
-                                          string {
+                                      cast {
+                                        type {
+                                          i32 {
                                             nullability: NULLABILITY_REQUIRED
                                           }
                                         }
-                                        arguments {
-                                          value {
-                                            selection {
-                                              direct_reference {
-                                                struct_field {
-                                                  field: 6
-                                                }
-                                              }
-                                              root_reference {
+                                        input {
+                                          selection {
+                                            direct_reference {
+                                              struct_field {
+                                                field: 7
                                               }
                                             }
-                                          }
-                                        }
-                                        arguments {
-                                          value {
-                                            literal {
-                                              string: "; "
+                                            root_reference {
                                             }
                                           }
                                         }
@@ -207,7 +236,7 @@ relations {
                                 expressions {
                                   cast {
                                     type {
-                                      i32 {
+                                      bool {
                                         nullability: NULLABILITY_REQUIRED
                                       }
                                     }
@@ -215,7 +244,7 @@ relations {
                                       selection {
                                         direct_reference {
                                           struct_field {
-                                            field: 7
+                                            field: 9
                                           }
                                         }
                                         root_reference {
@@ -226,21 +255,31 @@ relations {
                                 }
                               }
                             }
-                            expressions {
-                              cast {
-                                type {
+                            condition {
+                              scalar_function {
+                                function_reference: 2
+                                output_type {
                                   bool {
                                     nullability: NULLABILITY_REQUIRED
                                   }
                                 }
-                                input {
-                                  selection {
-                                    direct_reference {
-                                      struct_field {
-                                        field: 9
+                                arguments {
+                                  value {
+                                    selection {
+                                      direct_reference {
+                                        struct_field {
+                                          field: 9
+                                        }
+                                      }
+                                      root_reference {
                                       }
                                     }
-                                    root_reference {
+                                  }
+                                }
+                                arguments {
+                                  value {
+                                    literal {
+                                      boolean: false
                                     }
                                   }
                                 }
@@ -250,7 +289,7 @@ relations {
                         }
                         condition {
                           scalar_function {
-                            function_reference: 2
+                            function_reference: 3
                             output_type {
                               bool {
                                 nullability: NULLABILITY_REQUIRED
@@ -261,7 +300,7 @@ relations {
                                 selection {
                                   direct_reference {
                                     struct_field {
-                                      field: 9
+                                      field: 6
                                     }
                                   }
                                   root_reference {
@@ -272,7 +311,7 @@ relations {
                             arguments {
                               value {
                                 literal {
-                                  boolean: false
+                                  string: "pop"
                                 }
                               }
                             }
@@ -280,11 +319,24 @@ relations {
                         }
                       }
                     }
-                    condition {
-                      scalar_function {
-                        function_reference: 3
+                    groupings {
+                      grouping_expressions {
+                        selection {
+                          direct_reference {
+                            struct_field {
+                              field: 2
+                            }
+                          }
+                          root_reference {
+                          }
+                        }
+                      }
+                    }
+                    measures {
+                      measure {
+                        function_reference: 4
                         output_type {
-                          bool {
+                          i32 {
                             nullability: NULLABILITY_REQUIRED
                           }
                         }
@@ -293,7 +345,7 @@ relations {
                             selection {
                               direct_reference {
                                 struct_field {
-                                  field: 6
+                                  field: 7
                                 }
                               }
                               root_reference {
@@ -301,76 +353,37 @@ relations {
                             }
                           }
                         }
-                        arguments {
-                          value {
-                            literal {
-                              string: "pop"
-                            }
-                          }
-                        }
                       }
                     }
                   }
                 }
-                groupings {
-                  grouping_expressions {
+                sorts {
+                  expr {
                     selection {
                       direct_reference {
                         struct_field {
-                          field: 2
+                          field: 1
                         }
                       }
                       root_reference {
                       }
                     }
                   }
-                }
-                measures {
-                  measure {
-                    function_reference: 4
-                    output_type {
-                      i32 {
-                        nullability: NULLABILITY_REQUIRED
-                      }
-                    }
-                    arguments {
-                      value {
-                        selection {
-                          direct_reference {
-                            struct_field {
-                              field: 7
-                            }
-                          }
-                          root_reference {
-                          }
-                        }
-                      }
-                    }
-                  }
+                  direction: SORT_DIRECTION_DESC_NULLS_LAST
                 }
               }
             }
-            sorts {
-              expr {
-                selection {
-                  direct_reference {
-                    struct_field {
-                      field: 1
-                    }
-                  }
-                  root_reference {
-                  }
-                }
-              }
-              direction: SORT_DIRECTION_DESC_NULLS_LAST
-            }
+            count: 10
           }
         }
-        count: 10
+        expressions {
+          literal {
+            string: "hiya"
+          }
+        }
       }
     }
-    names: "grouping"
-    names: "# of Listeners"
+    names: "show_string"
   }
 }
 version {

@@ -177,8 +177,8 @@ class SparkSubstraitConverter:
         # TODO -- Utilize the alias name.
         return self.convert_expression(alias.expr)
 
-    def convert_type_str(self, spark_type_str: str) -> type_pb2.Type:
-        """Converts a Spark type into a Substrait type."""
+    def convert_type_str(self, spark_type_str: Optional[str]) -> type_pb2.Type:
+        """Converts a Spark type string into a Substrait type."""
         # TODO -- Properly handle nullability.
         match spark_type_str:
             case 'boolean':
@@ -196,20 +196,7 @@ class SparkSubstraitConverter:
 
     def convert_type(self, spark_type: spark_types_pb2.DataType) -> type_pb2.Type:
         """Converts a Spark type into a Substrait type."""
-        # TODO -- Properly handle nullability.
-        match spark_type.WhichOneof('kind'):
-            case 'boolean':
-                return type_pb2.Type(bool=type_pb2.Type.Boolean(
-                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED
-                ))
-            case 'integer':
-                return type_pb2.Type(i32=type_pb2.Type.I32(
-                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED
-                ))
-            # TODO -- Add all of the other types.
-            case _:
-                raise NotImplementedError(
-                    f'type {spark_type.WhichOneof("kind")} not yet implemented.')
+        return self.convert_type_str(spark_type.WhichOneof('kind'))
 
     def convert_cast_expression(
             self, cast: spark_exprs_pb2.Expression.Cast) -> algebra_pb2.Expression:
@@ -219,7 +206,7 @@ class SparkSubstraitConverter:
             case 'type':
                 cast_rel.type.CopyFrom(self.convert_type(cast.type))
             case 'type_str':
-                cast_rel.type.CopyFrom(self.convert_type_str(cast.type.str))
+                cast_rel.type.CopyFrom(self.convert_type_str(cast.type_str))
             case _:
                 raise NotImplementedError(
                     f'unknown cast_to_type {cast.WhichOneof('cast_to_type')}'
@@ -460,15 +447,24 @@ class SparkSubstraitConverter:
 
     def convert_show_string_relation(self, rel: spark_relations_pb2.ShowString) -> algebra_pb2.Rel:
         """Converts a show string relation into a Substrait project relation."""
-        # TODO -- Implement using num_rows, truncate, and vertical.
-        result = self.convert_relation(rel.input)
+        # TODO -- Implement using num_rows by wrapping the input in a fetch relation.
+
+        # TODO -- Implement what happens if truncate is not set or less than two.
+        # TODO -- Implement what happens when rel.vertical is true.
+        input_rel = self.convert_relation(rel.input)
         self.update_field_references(rel.input.common.plan_id)
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
         # TODO -- Pull the columns from symbol.input_fields.
         # TODO -- Use string_agg to aggregate all of the column input into a single string.
         # TODO -- Use a project to output a single field with the table info in it.
-        # TODO -- Update the output field mapping to only contain that single row.
-        # TODO -- Name that output field 'show_string'.
-        return result
+        symbol.output_fields.clear()
+        symbol.output_fields.append('show_string')
+
+        project = algebra_pb2.ProjectRel(input=input_rel)
+        project.expressions.append(
+            algebra_pb2.Expression(literal=self.convert_string_literal('hiya')))
+        project.common.emit.output_mapping.append(len(symbol.input_fields))
+        return algebra_pb2.Rel(project=project)
 
     def convert_with_columns_relation(
             self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
