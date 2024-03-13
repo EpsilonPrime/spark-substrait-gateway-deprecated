@@ -25,6 +25,8 @@ class ConversionOptions:
 
         self.return_names_with_types = False
 
+        self.implement_show_string = False
+
         self.backend = backend
 
 

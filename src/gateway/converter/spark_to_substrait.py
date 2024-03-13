@@ -447,6 +447,11 @@ class SparkSubstraitConverter:
 
     def convert_show_string_relation(self, rel: spark_relations_pb2.ShowString) -> algebra_pb2.Rel:
         """Converts a show string relation into a Substrait project relation."""
+        if not self._conversion_options.implement_show_string:
+            result = self.convert_relation(rel.input)
+            self.update_field_references(rel.input.common.plan_id)
+            return result
+
         # TODO -- Implement using num_rows by wrapping the input in a fetch relation.
 
         # TODO -- Implement what happens if truncate is not set or less than two.
