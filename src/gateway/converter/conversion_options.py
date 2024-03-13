@@ -5,6 +5,7 @@ import dataclasses
 from gateway.adbc.backend_options import BackendOptions, Backend
 
 
+# pylint: disable=too-many-instance-attributes
 @dataclasses.dataclass
 class ConversionOptions:
     """Holds all the possible conversion options."""

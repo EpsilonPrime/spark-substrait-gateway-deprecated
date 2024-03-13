@@ -4,7 +4,7 @@ import atexit
 from pathlib import Path
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, substring
+from pyspark.sql.functions import col
 from pyspark.sql.pandas.types import from_arrow_schema
 
 from gateway.demo.mystream_database import create_mystream_database, delete_mystream_database
