@@ -58,7 +58,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         results = backend.execute(substrait, self._options.backend)
         print(f"  results are: {results}")
 
-        if not self._options.implement_show_string:
+        if not self._options.implement_show_string and request.plan.root.WhichOneof(
+                'rel_type') == 'show_string':
             yield pb2.ExecutePlanResponse(
                 session_id=request.session_id,
                 arrow_batch=pb2.ExecutePlanResponse.ArrowBatch(row_count=results.num_rows,
