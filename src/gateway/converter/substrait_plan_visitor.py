@@ -297,9 +297,9 @@ class SubstraitPlanVisitor:
 
     def visit_multi_or_list(self, multi_or_list: algebra_pb2.Expression.MultiOrList) -> Any:
         """Visits a multi or list."""
-        for value in expression.value:
+        for value in multi_or_list.value:
             self.visit_expression(value)
-        for option in expression.options:
+        for option in multi_or_list.options:
             self.visit_record(option)
         return None
 
@@ -425,9 +425,29 @@ class SubstraitPlanVisitor:
             case 'literal':
                 return self.visit_literal(expression.literal)
             case 'selection':
-                return self.visit_selection(expression.selection)
-            case
-        return None
+                return self.visit_field_reference(expression.selection)
+            case 'scalar_function':
+                return self.visit_scalar_function(expression.scalar_function)
+            case 'window_function':
+                return self.visit_window_function(expression.window_function)
+            case 'if_then':
+                return self.visit_if_then(expression.if_then)
+            case 'switch_expression':
+                return self.visit_switch_expression(expression.switch_expression)
+            case 'singular_or_list':
+                return self.visit_singular_or_list(expression.singular_or_list)
+            case 'multi_or_list':
+                return self.visit_multi_or_list(expression.multi_or_list)
+            case 'cast':
+                return self.visit_cast(expression.cast)
+            case 'subquery':
+                return self.visit_subquery(expression.subquery)
+            case 'nested':
+                return self.visit_nested(expression.nested)
+            case 'enum':
+                return self.visit_enum(expression.enum)
+            case _:
+                raise ValueError(f'Unexpected expression type: {expression.WhichOneof("rex_type_case")}')
 
     def visit_mask_expression(self, expression: algebra_pb2.MaskExpression) -> Any:
         """Visits a mask expression."""
