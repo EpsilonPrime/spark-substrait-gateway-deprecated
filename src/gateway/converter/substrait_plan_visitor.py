@@ -16,19 +16,16 @@ class SubstraitPlanVisitor:
         """Visits a scalar subquery."""
         if subquery.HasField('input'):
             self.visit_relation(subquery.input)
-        return None
 
     def visit_subquery_in_predicate(self, subquery: algebra_pb2.Subquery.InPredicate) -> Any:
         """Visits an in predicate."""
         if subquery.HasField('haystack'):
             self.visit_relation(subquery.haystack)
-        return None
 
     def visit_subquery_set_predicate(self, subquery: algebra_pb2.Subquery.SetPredicate) -> Any:
         """Visits a set predicate."""
         if subquery.HasField('tuples'):
             self.visit_relation(subquery.tuples)
-        return None
 
     def visit_subquery_set_comparison(self, subquery: algebra_pb2.Subquery.SetComparison) -> Any:
         """Visits a set comparison."""
@@ -36,25 +33,21 @@ class SubstraitPlanVisitor:
             self.visit_expression(subquery.left)
         if subquery.HasField('right'):
             self.visit_expression(subquery.right)
-        return None
 
     def visit_nested_struct(self, structure: algebra_pb2.Expression.Nested.Struct) -> Any:
         """Visits a nested struct."""
         for field in structure.fields:
             self.visit_expression(field)
-        return None
 
     def visit_nested_list(self, list_literal: algebra_pb2.Expression.Nested.List) -> Any:
         """Visits a nested list."""
         for value in list_literal.values:
             self.visit_expression(value)
-        return None
 
     def visit_nested_map(self, map_literal: algebra_pb2.Expression.Nested.Map) -> Any:
         """Visits a nested map."""
         for key_value in map_literal.key_values:
             self.visit_nested_key_value(key_value)
-        return None
 
     def visit_nested_key_value(self, key_value: algebra_pb2.Expression.Nested.Map.KeyValue) -> Any:
         """Visits a nested key value."""
@@ -62,13 +55,11 @@ class SubstraitPlanVisitor:
             self.visit_expression(key_value.key)
         if key_value.HasField('value'):
             self.visit_expression(key_value.value)
-        return None
 
     def visit_struct_item(self, item: algebra_pb2.StructItem) -> Any:
         """Visits a struct item."""
         if item.HasField('child'):
             self.visit_select(item.child)
-        return None
 
     def visit_reference_segment_map_key(self, map_key: algebra_pb2.ReferenceSegment.MapKey) -> Any:
         """Visits a map key."""
@@ -76,19 +67,18 @@ class SubstraitPlanVisitor:
             self.visit_literal(map_key.map_key)
         if map_key.HasField('child'):
             self.visit_reference_segment(map_key.child)
-        return None
 
-    def visit_reference_segment_struct_field(self, field: algebra_pb2.ReferenceSegment.StructField) -> Any:
+    def visit_reference_segment_struct_field(
+            self, field: algebra_pb2.ReferenceSegment.StructField) -> Any:
         """Visits a struct field."""
         if field.HasField('child'):
             self.visit_reference_segment(field.child)
-        return None
 
-    def visit_reference_segment_list_element(self, element: algebra_pb2.ReferenceSegment.ListElement) -> Any:
+    def visit_reference_segment_list_element(
+            self, element: algebra_pb2.ReferenceSegment.ListElement) -> Any:
         """Visits a list element."""
         if element.HasField('child'):
             self.visit_reference_segment(element.child)
-        return None
 
     def visit_select(self, select: algebra_pb2.Expression.MaskExpression.Select) -> Any:
         """Visits a select."""
@@ -116,24 +106,21 @@ class SubstraitPlanVisitor:
             case 'user_defined_type_reference':
                 raise ValueError('user_defined_type_reference was replaced by user_defined_type.  '
                                  'Please update your plan version.')
-        return None
 
     def visit_type_user_defined(self, user_defined: type_pb2.Type.UserDefined) -> Any:
+        """Visits a user defined type."""
         for parameter in user_defined.type_parameters:
             self.visit_type_parameter(parameter)
-        return None
 
     def visit_type_parameter(self, parameter: type_pb2.Type.Parameter) -> Any:
         """Visits a type parameter."""
         if parameter.WhichOneof('parameter_case') == 'data_type':
             self.visit_type(parameter.data_type)
-        return None
 
     def visit_map(self, map_literal: algebra_pb2.Expression.Literal.Map) -> Any:
         """Visits a map."""
         for key_value in map_literal.key_values:
             self.visit_map_key_value(key_value)
-        return None
 
     def visit_map_key_value(self, key_value: algebra_pb2.Expression.Literal.Map.MapKeyValue) -> Any:
         """Visits a map key value."""
@@ -141,33 +128,28 @@ class SubstraitPlanVisitor:
             self.visit_literal(key_value.key)
         if key_value.HasField('value'):
             self.visit_literal(key_value.value)
-        return None
 
-    def visit_list(self, list: algebra_pb2.Expression.Literal.List) -> Any:
+    def visit_list(self, list_expression: algebra_pb2.Expression.Literal.List) -> Any:
         """Visits a list."""
-        for value in list.values:
+        for value in list_expression.values:
             self.visit_literal(value)
-        return None
 
-    def visit_type_list(self, list: type_pb2.Type.List) -> Any:
+    def visit_type_list(self, list_type: type_pb2.Type.List) -> Any:
         """Visits a list."""
-        if list.HasField('type'):
-            self.visit_type(list.type)
-        return None
+        if list_type.HasField('type'):
+            self.visit_type(list_type.type)
 
-    def visit_type_map(self, map: type_pb2.Type.Map) -> Any:
+    def visit_type_map(self, map_type: type_pb2.Type.Map) -> Any:
         """Visits a map."""
-        if map.HasField('key'):
-            self.visit_type(map.key)
-        if map.HasField('value'):
-            self.visit_type(map.value)
-        return None
+        if map_type.HasField('key'):
+            self.visit_type(map_type.key)
+        if map_type.HasField('value'):
+            self.visit_type(map_type.value)
 
     def visit_user_defined(self, user_defined: algebra_pb2.Expression.Literal.UserDefined) -> Any:
         """Visits a user defined expression."""
         for parameter in user_defined.type_parameters:
             self.visit_type_parameter(parameter)
-        return None
 
     def visit_function_argument(self, argument: algebra_pb2.FunctionArgument) -> Any:
         """Visits a function argument."""
@@ -182,7 +164,7 @@ class SubstraitPlanVisitor:
                 raise ValueError(
                     f'Unexpected argument type: {argument.WhichOneof("arg_type_case")}')
 
-    def visit_function_option(self, option: algebra_pb2.FunctionOption) -> Any:
+    def visit_function_option(self, _: algebra_pb2.FunctionOption) -> Any:
         """Visits a function option."""
         return None
 
@@ -190,7 +172,6 @@ class SubstraitPlanVisitor:
         """Visits a record."""
         for field in record.fields:
             self.visit_expression(field)
-        return None
 
     def visit_if_clause(self, if_clause: algebra_pb2.Expression.SwitchExpression.IfClause) -> Any:
         """Visits an if clause."""
@@ -198,7 +179,6 @@ class SubstraitPlanVisitor:
             self.visit_expression(if_clause.if_)
         if if_clause.HasField('then'):
             self.visit_expression(if_clause.then)
-        return None
 
     def visit_if_value(self, if_clause: algebra_pb2.Expression.SwitchExpression.IfValue) -> Any:
         """Visits an if value."""
@@ -206,31 +186,29 @@ class SubstraitPlanVisitor:
             self.visit_literal(if_clause.if_)
         if if_clause.HasField('then'):
             self.visit_expression(if_clause.then)
-        return None
 
     def visit_struct(self, structure: type_pb2.Type.Struct) -> Any:
         """Visits a struct."""
         for t in structure.types:
             self.visit_type(t)
-        return None
 
     def visit_literal(self, literal: algebra_pb2.ExpressionLiteral) -> Any:
+        """Visits a literal."""
         match literal.WhichOneof('literal_type_case'):
             case 'struct':
-                return self.visit_expression_literal_struct(literal.struct)
+                self.visit_expression_literal_struct(literal.struct)
             case 'map':
-                return self.visit_map(literal.map)
+                self.visit_map(literal.map)
             case 'null':
-                return self.visit_type(literal.null)
+                self.visit_type(literal.null)
             case 'list':
-                return self.visit_list(literal.list)
+                self.visit_list(literal.list)
             case 'empty_list':
-                return self.visit_type_list(literal.empty_list)
+                self.visit_type_list(literal.empty_list)
             case 'empty_map':
-                return self.visit_type_map(literal.empty_map)
+                self.visit_type_map(literal.empty_map)
             case 'user_defined':
-                return self.visit_user_defined(literal.user_defined)
-        return None
+                self.visit_user_defined(literal.user_defined)
 
     def visit_scalar_function(self, function: algebra_pb2.Expression.ScalarFunction) -> Any:
         """Visits a scalar function."""
@@ -242,7 +220,6 @@ class SubstraitPlanVisitor:
             self.visit_type(function.output_type)
         for arg in function.args:
             self.visit_expression(arg)
-        return None
 
     def visit_window_function(self, function: algebra_pb2.Expression.WindowFunction) -> Any:
         """Visits a window function."""
@@ -256,10 +233,9 @@ class SubstraitPlanVisitor:
             self.visit_sort_field(sort)
         for partition in function.partitions:
             self.visit_expression(partition)
-        return None
 
-    def visit_window_rel_function(self,
-                                  function: algebra_pb2.ConsistentPartitionWindowRel.WindowRelFunction) -> Any:
+    def visit_window_rel_function(
+            self, function: algebra_pb2.ConsistentPartitionWindowRel.WindowRelFunction) -> Any:
         """Visits a window relation function."""
         for arg in function.arguments:
             self.visit_function_argument(arg)
@@ -267,7 +243,6 @@ class SubstraitPlanVisitor:
             self.visit_function_option(option)
         if function.HasField('output_type'):
             self.visit_type(function.output_type)
-        return None
 
     def visit_if_then(self, if_then: algebra_pb2.Expression.IfThen) -> Any:
         """Visits an if then."""
@@ -275,25 +250,23 @@ class SubstraitPlanVisitor:
             self.visit_if_clause(if_then_if)
         if if_then.HasField('else_'):
             self.visit_expression(if_then.else_)
-        return None
 
     def visit_switch_expression(self, expression: algebra_pb2.Expression.SwitchExpression) -> Any:
+        """Visits a switch expression."""
         if expression.HasField('match'):
             self.visit_expression(expression.match)
         for if_then_if in expression.ifs:
             self.visit_if_value(if_then_if)
         if expression.HasField('else'):
             self.visit_expression(expression.else_)
-        return None
 
     def visit_singular_or_list(self,
                                singular_or_list: algebra_pb2.Expression.SingularOrList) -> Any:
         """Visits a singular or list."""
         if singular_or_list.HasField('value'):
-            return self.visit_expression(singular_or_list.value)
+            self.visit_expression(singular_or_list.value)
         for option in singular_or_list.options:
             self.visit_expression(option)
-        return None
 
     def visit_multi_or_list(self, multi_or_list: algebra_pb2.Expression.MultiOrList) -> Any:
         """Visits a multi or list."""
@@ -301,7 +274,6 @@ class SubstraitPlanVisitor:
             self.visit_expression(value)
         for option in multi_or_list.options:
             self.visit_record(option)
-        return None
 
     def visit_cast(self, cast: algebra_pb2.Expression.Cast) -> Any:
         """Visits a cast."""
@@ -309,7 +281,6 @@ class SubstraitPlanVisitor:
             self.visit_expression(cast.input)
         if cast.HasField('type'):
             self.visit_type(cast.type)
-        return None
 
     def visit_subquery(self, subquery: algebra_pb2.Subquery) -> Any:
         """Visits a subquery."""
@@ -339,7 +310,7 @@ class SubstraitPlanVisitor:
                 raise ValueError(
                     f'Unexpected nested type: {structure.WhichOneof("nested_type_case")}')
 
-    def visit_enum(self, value: algebra_pb2.Expression.Enum) -> Any:
+    def visit_enum(self, _: algebra_pb2.Expression.Enum) -> Any:
         """Visits an enum."""
         return None
 
@@ -348,7 +319,6 @@ class SubstraitPlanVisitor:
         """Visits a struct select."""
         for item in structure.struct_items:
             self.visit_struct_item(item)
-        return None
 
     def visit_list_select(self, select: algebra_pb2.Expression.MaskExpression.ListSelect) -> Any:
         """Visits a list select."""
@@ -356,13 +326,13 @@ class SubstraitPlanVisitor:
             self.visit_list_select_item(item)
         if select.HasField('child'):
             self.visit_select(select.child)
-        return None
 
-    def visit_list_select_item(self, item: algebra_pb2.ListSelectItem) -> Any:
+    def visit_list_select_item(self, _: algebra_pb2.ListSelectItem) -> Any:
         """Visits a list select item."""
         return None
 
     def visit_map_select(self, select: algebra_pb2.Expression.MaskExpression.MapSelect) -> Any:
+        """Visits a map select."""
         if select.HasField('child'):
             self.visit_select(select.child)
         match select.WhichOneof('select_case'):
@@ -377,9 +347,8 @@ class SubstraitPlanVisitor:
         """Visits an expression literal struct."""
         for literal in struct.fields:
             self.visit_literal(literal)
-        return None
 
-    def visit_file_or_files(self, file_or_files: algebra_pb2.FileOrFiles) -> Any:
+    def visit_file_or_files(self, _: algebra_pb2.FileOrFiles) -> Any:
         """Visits a file or files."""
         return None
 
@@ -395,9 +364,9 @@ class SubstraitPlanVisitor:
             self.visit_sort_field(sort)
         for arg in structure.args:
             self.visit_expression(arg)
-        return None
 
     def visit_reference_segment(self, segment: algebra_pb2.ReferenceSegment) -> Any:
+        """Visits a reference segment."""
         match segment.WhichOneof('reference_type_case'):
             case 'map_key':
                 return self.visit_reference_segment_map_key(segment.map_key)
@@ -407,13 +376,12 @@ class SubstraitPlanVisitor:
                 return self.visit_reference_segment_list_element(segment.list_element)
             case _:
                 raise ValueError(
-                    f'Unexpected reference segment type: {segment.WhichOneof("reference_type_case")}')
+                    f'Unexpected reference type case: {segment.WhichOneof("reference_type_case")}')
 
     def visit_relation_common(self, common: algebra_pb2.RelationCommon) -> Any:
         """Visits a common relation."""
         if common.HasField('advanced_extension'):
             self.visit_advanced_extension(common.advanced_extension)
-        return None
 
     def visit_named_struct(self, struct: algebra_pb2.NamedStruct) -> Any:
         """Visits a named struct."""
@@ -423,43 +391,42 @@ class SubstraitPlanVisitor:
         """Visits an expression."""
         match expression.WhichOneof('rex_type_case'):
             case 'literal':
-                return self.visit_literal(expression.literal)
+                self.visit_literal(expression.literal)
             case 'selection':
-                return self.visit_field_reference(expression.selection)
+                self.visit_field_reference(expression.selection)
             case 'scalar_function':
-                return self.visit_scalar_function(expression.scalar_function)
+                self.visit_scalar_function(expression.scalar_function)
             case 'window_function':
-                return self.visit_window_function(expression.window_function)
+                self.visit_window_function(expression.window_function)
             case 'if_then':
-                return self.visit_if_then(expression.if_then)
+                self.visit_if_then(expression.if_then)
             case 'switch_expression':
-                return self.visit_switch_expression(expression.switch_expression)
+                self.visit_switch_expression(expression.switch_expression)
             case 'singular_or_list':
-                return self.visit_singular_or_list(expression.singular_or_list)
+                self.visit_singular_or_list(expression.singular_or_list)
             case 'multi_or_list':
-                return self.visit_multi_or_list(expression.multi_or_list)
+                self.visit_multi_or_list(expression.multi_or_list)
             case 'cast':
-                return self.visit_cast(expression.cast)
+                self.visit_cast(expression.cast)
             case 'subquery':
-                return self.visit_subquery(expression.subquery)
+                self.visit_subquery(expression.subquery)
             case 'nested':
-                return self.visit_nested(expression.nested)
+                self.visit_nested(expression.nested)
             case 'enum':
-                return self.visit_enum(expression.enum)
+                self.visit_enum(expression.enum)
             case _:
-                raise ValueError(f'Unexpected expression type: {expression.WhichOneof("rex_type_case")}')
+                raise ValueError(
+                    f'Unexpected expression type: {expression.WhichOneof("rex_type_case")}')
 
     def visit_mask_expression(self, expression: algebra_pb2.MaskExpression) -> Any:
         """Visits a mask expression."""
         if expression.HasField('has_select'):
             self.visit_struct_select(expression.select)
-        return None
 
     def visit_virtual_table(self, table: algebra_pb2.ReadRel.VirtualTable) -> Any:
         """Visits a virtual table."""
         for value in table.values:
             self.visit_expression_literal_struct(value)
-        return None
 
     def visit_local_files(self, local_files: algebra_pb2.ReadRel.LocalFiles) -> Any:
         """Visits a local files."""
@@ -467,22 +434,20 @@ class SubstraitPlanVisitor:
             self.visit_file_or_files(item)
         if local_files.HasField('advanced_extension'):
             self.visit_advanced_extension(local_files.advanced_extension)
-        return None
 
     def visit_named_table(self, table: algebra_pb2.ReadRel.NamedTable) -> Any:
         """Visits a named table."""
         if table.HasField('advanced_extension'):
             self.visit_advanced_extension(table.advanced_extension)
-        return None
 
-    def visit_extension_table(self, table: algebra_pb2.ReadRel.ExtensionTable) -> Any:
+    def visit_extension_table(self, _: algebra_pb2.ReadRel.ExtensionTable) -> Any:
+        """Visits an extension table."""
         return None
 
     def visit_grouping(self, grouping: algebra_pb2.Grouping) -> Any:
         """Visits a grouping."""
         for expr in grouping.grouping_expressions:
             self.visit_expression(expr)
-        return None
 
     def visit_measure(self, measure: algebra_pb2.AggregateRel.Measure) -> Any:
         """Visits a measure."""
@@ -490,13 +455,11 @@ class SubstraitPlanVisitor:
             self.visit_aggregate_function(measure.measure)
         if measure.HasField('filter'):
             self.visit_expression(measure.filter)
-        return None
 
     def visit_sort_field(self, sort: algebra_pb2.SortField) -> Any:
         """Visits a sort field."""
         if sort.HasField('expr'):
             self.visit_expression(sort.expr)
-        return None
 
     def visit_field_reference(self, ref: algebra_pb2.FieldReference) -> Any:
         """Visits a field reference."""
@@ -506,7 +469,6 @@ class SubstraitPlanVisitor:
             self.visit_mask_expression(ref.masked_expression)
         if ref.HasField('expression'):
             self.visit_expression(ref.expression)
-        return None
 
     def visit_expand_field(self, field: algebra_pb2.ExpandField) -> Any:
         """Visits an expand field."""
@@ -519,7 +481,6 @@ class SubstraitPlanVisitor:
                     self.visit_expression(field.consistent_field)
             case _:
                 raise ValueError(f'Unexpected field type: {field.WhichOneof("field_type_case")}')
-        return None
 
     def visit_read_relation(self, rel: algebra_pb2.ReadRel) -> Any:
         """Visits a read relation."""
@@ -546,7 +507,6 @@ class SubstraitPlanVisitor:
                 self.visit_extension_table(rel.extension_table)
             case _:
                 raise ValueError(f'Unexpected read type: {rel.WhichOneof("read_type_case")}')
-        return None
 
     def visit_filter_relation(self, rel: algebra_pb2.FilterRel) -> Any:
         """Visits a filter relation."""
@@ -558,7 +518,6 @@ class SubstraitPlanVisitor:
             self.visit_advanced_extension(rel.advanced_extension)
         if rel.HasField('input'):
             self.visit_relation(rel.input)
-        return None
 
     def visit_fetch_relation(self, rel: algebra_pb2.FetchRel) -> Any:
         """Visits a fetch relation."""
@@ -568,7 +527,6 @@ class SubstraitPlanVisitor:
             self.visit_advanced_extension(rel.advanced_extension)
         if rel.HasField('input'):
             self.visit_relation(rel.input)
-        return None
 
     def visit_aggregate_relation(self, rel: algebra_pb2.AggregateRel) -> Any:
         """Visits an aggregate relation."""
@@ -582,7 +540,6 @@ class SubstraitPlanVisitor:
             self.visit_advanced_extension(rel.advanced_extension)
         if rel.HasField('input'):
             self.visit_relation(rel.input)
-        return None
 
     def visit_sort_relation(self, rel: algebra_pb2.SortRel) -> Any:
         """Visits a sort relation."""
@@ -594,7 +551,6 @@ class SubstraitPlanVisitor:
             self.visit_advanced_extension(rel.advanced_extension)
         if rel.HasField('input'):
             self.visit_relation(rel.input)
-        return None
 
     def visit_join_relation(self, rel: algebra_pb2.JoinRel) -> Any:
         """Visits a join relation."""
@@ -610,7 +566,6 @@ class SubstraitPlanVisitor:
             self.visit_expression(rel.post_join_filter)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_project_relation(self, rel: algebra_pb2.ProjectRel) -> Any:
         """Visits a project relation."""
@@ -622,17 +577,15 @@ class SubstraitPlanVisitor:
             self.visit_expression(expr)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_set_relation(self, rel: algebra_pb2.SetRel) -> Any:
         """Visits a set relation."""
         if rel.HasField('common'):
             self.visit_relation_common(rel.common)
-        for input in rel.inputs:
-            self.visit_relation(input)
+        for relation in rel.inputs:
+            self.visit_relation(relation)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_extension_single_relation(self, rel: algebra_pb2.ExtensionSingleRel) -> Any:
         """Visits an extension single relation."""
@@ -640,21 +593,18 @@ class SubstraitPlanVisitor:
             self.visit_relation_common(rel.common)
         if rel.HasField('input'):
             self.visit_relation(rel.input)
-        return None
 
     def visit_extension_multi_relation(self, rel: algebra_pb2.ExtensionMultiRel) -> Any:
         """Visits an extension multi relation."""
         if rel.HasField('common'):
             self.visit_relation_common(rel.common)
-        for input in rel.inputs:
-            self.visit_relation(input)
-        return None
+        for relation in rel.inputs:
+            self.visit_relation(relation)
 
     def visit_extension_leaf_relation(self, rel: algebra_pb2.ExtensionLeafRel) -> Any:
         """Visits an extension leaf relation."""
         if rel.HasField('common'):
             self.visit_relation_common(rel.common)
-        return None
 
     def visit_cross_relation(self, rel: algebra_pb2.CrossRel) -> Any:
         """Visits a cross relation."""
@@ -666,13 +616,11 @@ class SubstraitPlanVisitor:
             self.visit_relation(rel.right)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_reference_relation(self, rel: algebra_pb2.ReferenceRel) -> Any:
         """Visits a reference relation."""
         if rel.HasField('common'):
             self.visit_relation_common(rel.common)
-        return None
 
     def visit_write_relation(self, rel: algebra_pb2.WriteRel) -> Any:
         """Visits a write relation."""
@@ -683,7 +631,6 @@ class SubstraitPlanVisitor:
             self.visit_relation(rel.input)
         if rel.HasField('common'):
             self.visit_relation_common(rel.common)
-        return None
 
     def visit_ddl_relation(self, rel: algebra_pb2.DDLRel) -> Any:
         """Visits a DDL relation."""
@@ -697,7 +644,6 @@ class SubstraitPlanVisitor:
             self.visit_relation(rel.view_definition)
         if rel.HasField('common'):
             self.visit_relation_common(rel.common)
-        return None
 
     def visit_hash_join_relation(self, rel: algebra_pb2.HashJoinRel) -> Any:
         """Visits a hash join relation."""
@@ -715,7 +661,6 @@ class SubstraitPlanVisitor:
             self.visit_expression(rel.post_join_filter)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_merge_join_loop_relation(self, rel: algebra_pb2.MergeJoinLoopRel) -> Any:
         """Visits a merge join loop relation."""
@@ -733,7 +678,6 @@ class SubstraitPlanVisitor:
             self.visit_expression(rel.post_join_filter)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_nested_loop_join_relation(self, rel: algebra_pb2.NestedLoopJoinRel) -> Any:
         """Visits a nested loop join relation."""
@@ -747,7 +691,6 @@ class SubstraitPlanVisitor:
             self.visit_expression(rel.expression)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_window_relation(self, rel: algebra_pb2.WindowRel) -> Any:
         """Visits a window relation."""
@@ -763,7 +706,6 @@ class SubstraitPlanVisitor:
             self.visit_sort_field(sort)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_exchange_relation(self, rel: algebra_pb2.ExchangeRel) -> Any:
         """Visits an exchange relation."""
@@ -773,77 +715,74 @@ class SubstraitPlanVisitor:
             self.visit_relation(rel.input)
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
-        return None
 
     def visit_expand_relation(
             self, rel: algebra_pb2.ExpandRel) -> Any:
         """Visits an expand relation."""
         if rel.HasField('common'):
-            self.visit_relation_common(rel.common)
+            return self.visit_relation_common(rel.common)
         if rel.HasField('input'):
-            self.visit_relation(rel.input)
+            return self.visit_relation(rel.input)
         for field in rel.fields:
-            self.visit_expand_field(field)
+            return self.visit_expand_field(field)
         if rel.HasField('advanced_extension'):
-            self.visit_advanced_extension(rel.advanced_extension)
-        return None
+            return self.visit_advanced_extension(rel.advanced_extension)
 
     def visit_relation(self, rel: algebra_pb2.Relation) -> Any:
         """Visits a Substrait relation."""
         match rel.WhichOneof('rel_type_case'):
             case 'read':
-                result = self.visit_read_relation(rel.read)
+                self.visit_read_relation(rel.read)
             case 'filter':
-                result = self.visit_filter_relation(rel.filter)
+                self.visit_filter_relation(rel.filter)
             case 'fetch':
-                result = self.visit_fetch_relation(rel.fetch)
+                self.visit_fetch_relation(rel.fetch)
             case 'aggregate':
-                result = self.visit_aggregate_relation(rel.aggregate)
+                self.visit_aggregate_relation(rel.aggregate)
             case 'sort':
-                result = self.visit_sort_relation(rel.sort)
+                self.visit_sort_relation(rel.sort)
             case 'join':
-                result = self.visit_join_relation(rel.join)
+                self.visit_join_relation(rel.join)
             case 'project':
-                result = self.visit_project_relation(rel.project)
+                self.visit_project_relation(rel.project)
             case 'extension_single':
-                result = self.visit_extension_single_relation(rel.extension_single)
+                self.visit_extension_single_relation(rel.extension_single)
             case 'extension_multi':
-                result = self.visit_extension_multi_relation(rel.extension_multi)
+                self.visit_extension_multi_relation(rel.extension_multi)
             case 'extension_leaf':
-                result = self.visit_extension_leaf_relation(rel.extension_leaf)
+                self.visit_extension_leaf_relation(rel.extension_leaf)
             case 'cross':
-                result = self.visit_cross_relation(rel.cross)
+                self.visit_cross_relation(rel.cross)
             case 'reference':
-                result = self.visit_reference_relation(rel.reference)
+                self.visit_reference_relation(rel.reference)
             case 'write':
-                result = self.visit_write_relation(rel.write)
+                self.visit_write_relation(rel.write)
             case 'ddl':
-                result = self.visit_ddl_relation(rel.ddl)
+                self.visit_ddl_relation(rel.ddl)
             case 'hash_join':
-                result = self.visit_hash_join_relation(rel.hash_join)
+                self.visit_hash_join_relation(rel.hash_join)
             case 'merge_join':
-                result = self.visit_merge_join_relation(rel.merge_join)
+                self.visit_merge_join_relation(rel.merge_join)
             case 'nested_loop_join':
-                result = self.visit_nested_loop_join_relation(rel.nested_loop_join)
+                self.visit_nested_loop_join_relation(rel.nested_loop_join)
             case 'window':
-                result = self.visit_window_relation(rel.window)
+                self.visit_window_relation(rel.window)
             case 'exchange':
-                result = self.visit_exchange_relation(rel.exchange)
+                self.visit_exchange_relation(rel.exchange)
             case 'expand':
-                result = self.visit_expand_relation(rel.expand)
+                self.visit_expand_relation(rel.expand)
             case _:
                 raise ValueError(f'Unexpected rel type: {rel.WhichOneof("rel_type")}')
-        return result
 
     def visit_relation_root(self, rel: plan_pb2.RelRoot) -> Any:
         """Visits a relation root."""
         return self.visit_relation(rel.relation)
 
-    def visit_extension_uri(self, uri: extensions_pb2.SimpleExtensionsURI) -> Any:
+    def visit_extension_uri(self, _: extensions_pb2.SimpleExtensionsURI) -> Any:
         """Visits an extension URI."""
         return None
 
-    def visit_extension(self, extension: extensions_pb2.SimpleExtensionDeclaration) -> Any:
+    def visit_extension(self, _: extensions_pb2.SimpleExtensionDeclaration) -> Any:
         """Visits an extension."""
         return None
 
@@ -858,11 +797,11 @@ class SubstraitPlanVisitor:
                 raise ValueError(
                     f'Unexpected relation type: {relation.WhichOneof("rel_type_case")}')
 
-    def visit_advanced_extension(self, extension: extensions_pb2.AdvancedExtension) -> Any:
+    def visit_advanced_extension(self, _: extensions_pb2.AdvancedExtension) -> Any:
         """Visits an advanced extension."""
         return None
 
-    def visit_expected_type_url(self, url: str) -> Any:
+    def visit_expected_type_url(self, _: str) -> Any:
         """Visits an expected type URL."""
         return None
 
