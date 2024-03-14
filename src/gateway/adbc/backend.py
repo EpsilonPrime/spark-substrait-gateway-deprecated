@@ -12,6 +12,7 @@ from pyarrow import substrait
 from substrait.gen.proto import plan_pb2
 
 from gateway.adbc.backend_options import BackendOptions, Backend
+from gateway.converter.replace_local_files import ReplaceLocalFilesWithNamedTable
 
 
 # pylint: disable=fixme
@@ -32,8 +33,11 @@ class AdbcBackend:
     def execute_with_datafusion(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Datafusion."""
         ctx = datafusion.SessionContext()
-        # TODO -- Handle registration by scanning the plan for the files we need to register.
-        ctx.register_parquet("demotable", 'users.parquet')
+
+        file_groups = ReplaceLocalFilesWithNamedTable().visit_plan(plan)
+        for files in file_groups:
+            for file in files[1]:
+                ctx.register_parquet(files[0], file)
 
         plan_data = plan.SerializeToString()
         substrait_plan = datafusion.substrait.substrait.serde.deserialize_bytes(plan_data)
