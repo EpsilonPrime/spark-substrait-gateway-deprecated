@@ -32,8 +32,8 @@ class AdbcBackend:
     def execute_with_datafusion(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Datafusion."""
         ctx = datafusion.SessionContext()
-        # TODO -- Handle registration by scanning and then rewriting the plan.
-        ctx.register_parquet("demotable", 'artists.parquet')
+        # TODO -- Handle registration by scanning the plan for the files we need to register.
+        ctx.register_parquet("demotable", 'users.parquet')
 
         plan_data = plan.SerializeToString()
         substrait_plan = datafusion.substrait.substrait.serde.deserialize_bytes(plan_data)

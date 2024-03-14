@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Abstract visitor class for Substrait plans."""
-from typing import Dict, Optional
+from typing import Any
 
 from substrait.gen.proto import plan_pb2
 from substrait.gen.proto import algebra_pb2
@@ -12,373 +12,849 @@ from substrait.gen.proto.extensions import extensions_pb2
 class SubstraitPlanVisitor:
     """Base class that visits all the parts of a Substrait plan."""
 
-    def visit_literal_expression(
-            self, literal: algebra_pb2.Expression.Literal) -> None:
-        """Converts a Spark literal into a Substrait literal."""
-        pass
+    def visit_subquery_scalar(self, subquery: algebra_pb2.Subquery.Scalar) -> Any:
+        """Visits a scalar subquery."""
+        if subquery.HasField('input'):
+            self.visit_relation(subquery.input)
+        return None
 
+    def visit_subquery_in_predicate(self, subquery: algebra_pb2.Subquery.InPredicate) -> Any:
+        """Visits an in predicate."""
+        if subquery.HasField('haystack'):
+            self.visit_relation(subquery.haystack)
+        return None
 
-    def visit_alias_expression(
-            self, alias: spark_exprs_pb2.Expression.Alias) -> algebra_pb2.Expression:
-        """Converts a Spark alias into a Substrait expression."""
-        # TODO -- Utilize the alias name.
-        return self.visit_expression(alias.expr)
+    def visit_subquery_set_predicate(self, subquery: algebra_pb2.Subquery.SetPredicate) -> Any:
+        """Visits a set predicate."""
+        if subquery.HasField('tuples'):
+            self.visit_relation(subquery.tuples)
+        return None
 
-    def visit_type_str(self, spark_type_str: Optional[str]) -> type_pb2.Type:
-        """Converts a Spark type string into a Substrait type."""
-        # TODO -- Properly handle nullability.
-        match spark_type_str:
-            case 'boolean':
-                return type_pb2.Type(bool=type_pb2.Type.Boolean(
-                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED
-                ))
-            case 'integer':
-                return type_pb2.Type(i32=type_pb2.Type.I32(
-                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED
-                ))
-            # TODO -- Add all of the other types.
+    def visit_subquery_set_comparison(self, subquery: algebra_pb2.Subquery.SetComparison) -> Any:
+        """Visits a set comparison."""
+        if subquery.HasField('left'):
+            self.visit_expression(subquery.left)
+        if subquery.HasField('right'):
+            self.visit_expression(subquery.right)
+        return None
+
+    def visit_nested_struct(self, structure: algebra_pb2.Expression.Nested.Struct) -> Any:
+        """Visits a nested struct."""
+        for field in structure.fields:
+            self.visit_expression(field)
+        return None
+
+    def visit_nested_list(self, list_literal: algebra_pb2.Expression.Nested.List) -> Any:
+        """Visits a nested list."""
+        for value in list_literal.values:
+            self.visit_expression(value)
+        return None
+
+    def visit_nested_map(self, map_literal: algebra_pb2.Expression.Nested.Map) -> Any:
+        """Visits a nested map."""
+        for key_value in map_literal.key_values:
+            self.visit_nested_key_value(key_value)
+        return None
+
+    def visit_nested_key_value(self, key_value: algebra_pb2.Expression.Nested.Map.KeyValue) -> Any:
+        """Visits a nested key value."""
+        if key_value.HasField('key'):
+            self.visit_expression(key_value.key)
+        if key_value.HasField('value'):
+            self.visit_expression(key_value.value)
+        return None
+
+    def visit_struct_item(self, item: algebra_pb2.StructItem) -> Any:
+        """Visits a struct item."""
+        if item.HasField('child'):
+            self.visit_select(item.child)
+        return None
+
+    def visit_reference_segment_map_key(self, map_key: algebra_pb2.ReferenceSegment.MapKey) -> Any:
+        """Visits a map key."""
+        if map_key.HasField('map_key'):
+            self.visit_literal(map_key.map_key)
+        if map_key.HasField('child'):
+            self.visit_reference_segment(map_key.child)
+        return None
+
+    def visit_reference_segment_struct_field(self, field: algebra_pb2.ReferenceSegment.StructField) -> Any:
+        """Visits a struct field."""
+        if field.HasField('child'):
+            self.visit_reference_segment(field.child)
+        return None
+
+    def visit_reference_segment_list_element(self, element: algebra_pb2.ReferenceSegment.ListElement) -> Any:
+        """Visits a list element."""
+        if element.HasField('child'):
+            self.visit_reference_segment(element.child)
+        return None
+
+    def visit_select(self, select: algebra_pb2.Expression.MaskExpression.Select) -> Any:
+        """Visits a select."""
+        match select.WhichOneof('type_case'):
+            case 'struct':
+                return self.visit_struct_select(select.struct)
+            case 'list':
+                return self.visit_list_select(select.list)
+            case 'map':
+                return self.visit_map_select(select.map)
             case _:
-                raise NotImplementedError(
-                    f'type {spark_type_str} not yet implemented.')
+                raise ValueError(f'Unexpected select type: {select.WhichOneof("type_case")}')
 
-    def visit_type(self, spark_type: spark_types_pb2.DataType) -> type_pb2.Type:
-        """Converts a Spark type into a Substrait type."""
-        return self.visit_type_str(spark_type.WhichOneof('kind'))
+    def visit_type(self, type_def: type_pb2.Type) -> Any:
+        """Visits a type."""
+        match type_def.WhichOneof('kind_case'):
+            case 'struct':
+                return self.visit_struct(type_def.struct_)
+            case 'list':
+                return self.visit_type_list(type_def.list)
+            case 'map':
+                return self.visit_type_map(type_def.map)
+            case 'user_defined':
+                return self.visit_type_user_defined(type_def.user_defined)
+            case 'user_defined_type_reference':
+                raise ValueError('user_defined_type_reference was replaced by user_defined_type.  '
+                                 'Please update your plan version.')
+        return None
 
-    def visit_cast_expression(
-            self, cast: spark_exprs_pb2.Expression.Cast) -> algebra_pb2.Expression:
-        """Converts a Spark cast expression into a Substrait cast expression."""
-        cast_rel = algebra_pb2.Expression.Cast(input=self.visit_expression(cast.expr))
-        match cast.WhichOneof('cast_to_type'):
+    def visit_type_user_defined(self, user_defined: type_pb2.Type.UserDefined) -> Any:
+        for parameter in user_defined.type_parameters:
+            self.visit_type_parameter(parameter)
+        return None
+
+    def visit_type_parameter(self, parameter: type_pb2.Type.Parameter) -> Any:
+        """Visits a type parameter."""
+        if parameter.WhichOneof('parameter_case') == 'data_type':
+            self.visit_type(parameter.data_type)
+        return None
+
+    def visit_map(self, map_literal: algebra_pb2.Expression.Literal.Map) -> Any:
+        """Visits a map."""
+        for key_value in map_literal.key_values:
+            self.visit_map_key_value(key_value)
+        return None
+
+    def visit_map_key_value(self, key_value: algebra_pb2.Expression.Literal.Map.MapKeyValue) -> Any:
+        """Visits a map key value."""
+        if key_value.HasField('key'):
+            self.visit_literal(key_value.key)
+        if key_value.HasField('value'):
+            self.visit_literal(key_value.value)
+        return None
+
+    def visit_list(self, list: algebra_pb2.Expression.Literal.List) -> Any:
+        """Visits a list."""
+        for value in list.values:
+            self.visit_literal(value)
+        return None
+
+    def visit_type_list(self, list: type_pb2.Type.List) -> Any:
+        """Visits a list."""
+        if list.HasField('type'):
+            self.visit_type(list.type)
+        return None
+
+    def visit_type_map(self, map: type_pb2.Type.Map) -> Any:
+        """Visits a map."""
+        if map.HasField('key'):
+            self.visit_type(map.key)
+        if map.HasField('value'):
+            self.visit_type(map.value)
+        return None
+
+    def visit_user_defined(self, user_defined: algebra_pb2.Expression.Literal.UserDefined) -> Any:
+        """Visits a user defined expression."""
+        for parameter in user_defined.type_parameters:
+            self.visit_type_parameter(parameter)
+        return None
+
+    def visit_function_argument(self, argument: algebra_pb2.FunctionArgument) -> Any:
+        """Visits a function argument."""
+        match argument.WhichOneof('arg_type_case'):
+            case 'enum':
+                return None
             case 'type':
-                cast_rel.type.CopyFrom(self.visit_type(cast.type))
-            case 'type_str':
-                cast_rel.type.CopyFrom(self.visit_type_str(cast.type_str))
+                return self.visitType(argument.type)
+            case 'value':
+                return self.visitExpression(argument.value)
             case _:
-                raise NotImplementedError(
-                    f'unknown cast_to_type {cast.WhichOneof('cast_to_type')}'
-                )
-        return algebra_pb2.Expression(cast=cast_rel)
+                raise ValueError(
+                    f'Unexpected argument type: {argument.WhichOneof("arg_type_case")}')
 
-    def visit_expression(self, expr: spark_exprs_pb2.Expression) -> algebra_pb2.Expression:
-        """Converts a SparkConnect expression to a Substrait expression."""
-        match expr.WhichOneof('expr_type'):
+    def visit_function_option(self, option: algebra_pb2.FunctionOption) -> Any:
+        """Visits a function option."""
+        return None
+
+    def visit_record(self, record: algebra_pb2.Expression.MultiOrList.Record) -> Any:
+        """Visits a record."""
+        for field in record.fields:
+            self.visit_expression(field)
+        return None
+
+    def visit_if_clause(self, if_clause: algebra_pb2.Expression.SwitchExpression.IfClause) -> Any:
+        """Visits an if clause."""
+        if if_clause.HasField('if'):
+            self.visit_expression(if_clause.if_)
+        if if_clause.HasField('then'):
+            self.visit_expression(if_clause.then)
+        return None
+
+    def visit_if_value(self, if_clause: algebra_pb2.Expression.SwitchExpression.IfValue) -> Any:
+        """Visits an if value."""
+        if if_clause.HasField('if'):
+            self.visit_literal(if_clause.if_)
+        if if_clause.HasField('then'):
+            self.visit_expression(if_clause.then)
+        return None
+
+    def visit_struct(self, structure: type_pb2.Type.Struct) -> Any:
+        """Visits a struct."""
+        for t in structure.types:
+            self.visit_type(t)
+        return None
+
+    def visit_literal(self, literal: algebra_pb2.ExpressionLiteral) -> Any:
+        match literal.WhichOneof('literal_type_case'):
+            case 'struct':
+                return self.visit_expression_literal_struct(literal.struct)
+            case 'map':
+                return self.visit_map(literal.map)
+            case 'null':
+                return self.visit_type(literal.null)
+            case 'list':
+                return self.visit_list(literal.list)
+            case 'empty_list':
+                return self.visit_type_list(literal.empty_list)
+            case 'empty_map':
+                return self.visit_type_map(literal.empty_map)
+            case 'user_defined':
+                return self.visit_user_defined(literal.user_defined)
+        return None
+
+    def visit_scalar_function(self, function: algebra_pb2.Expression.ScalarFunction) -> Any:
+        """Visits a scalar function."""
+        for arg in function.arguments:
+            self.visit_function_argument(arg)
+        for option in function.options:
+            self.visit_function_option(option)
+        if function.HasField('output_type'):
+            self.visit_type(function.output_type)
+        for arg in function.args:
+            self.visit_expression(arg)
+        return None
+
+    def visit_window_function(self, function: algebra_pb2.Expression.WindowFunction) -> Any:
+        """Visits a window function."""
+        for arg in function.arguments:
+            self.visit_function_argument(arg)
+        for option in function.options:
+            self.visit_function_option(option)
+        if function.HasField('output_type'):
+            self.visit_type(function.output_type)
+        for sort in function.sorts:
+            self.visit_sort_field(sort)
+        for partition in function.partitions:
+            self.visit_expression(partition)
+        return None
+
+    def visit_window_rel_function(self,
+                                  function: algebra_pb2.ConsistentPartitionWindowRel.WindowRelFunction) -> Any:
+        """Visits a window relation function."""
+        for arg in function.arguments:
+            self.visit_function_argument(arg)
+        for option in function.options:
+            self.visit_function_option(option)
+        if function.HasField('output_type'):
+            self.visit_type(function.output_type)
+        return None
+
+    def visit_if_then(self, if_then: algebra_pb2.Expression.IfThen) -> Any:
+        """Visits an if then."""
+        for if_then_if in if_then.ifs:
+            self.visit_if_clause(if_then_if)
+        if if_then.HasField('else_'):
+            self.visit_expression(if_then.else_)
+        return None
+
+    def visit_switch_expression(self, expression: algebra_pb2.Expression.SwitchExpression) -> Any:
+        if expression.HasField('match'):
+            self.visit_expression(expression.match)
+        for if_then_if in expression.ifs:
+            self.visit_if_value(if_then_if)
+        if expression.HasField('else'):
+            self.visit_expression(expression.else_)
+        return None
+
+    def visit_singular_or_list(self,
+                               singular_or_list: algebra_pb2.Expression.SingularOrList) -> Any:
+        """Visits a singular or list."""
+        if singular_or_list.HasField('value'):
+            return self.visit_expression(singular_or_list.value)
+        for option in singular_or_list.options:
+            self.visit_expression(option)
+        return None
+
+    def visit_multi_or_list(self, multi_or_list: algebra_pb2.Expression.MultiOrList) -> Any:
+        """Visits a multi or list."""
+        for value in expression.value:
+            self.visit_expression(value)
+        for option in expression.options:
+            self.visit_record(option)
+        return None
+
+    def visit_cast(self, cast: algebra_pb2.Expression.Cast) -> Any:
+        """Visits a cast."""
+        if cast.HasField('input'):
+            self.visit_expression(cast.input)
+        if cast.HasField('type'):
+            self.visit_type(cast.type)
+        return None
+
+    def visit_subquery(self, subquery: algebra_pb2.Subquery) -> Any:
+        """Visits a subquery."""
+        match subquery.WhichOneof('subquery_type_case'):
+            case 'scalar':
+                return self.visit_subquery_scalar(subquery.scalar)
+            case 'in_predicate':
+                return self.visit_subquery_in_predicate(subquery.in_predicate)
+            case 'set_predicate':
+                return self.visit_subquery_set_predicate(subquery.set_predicate)
+            case 'set_comparison':
+                return self.visit_subquery_set_comparison(subquery.set_comparison)
+            case _:
+                raise ValueError(
+                    f'Unexpected subquery type: {subquery.WhichOneof("subquery_type_case")}')
+
+    def visit_nested(self, structure: algebra_pb2.Expression.Nested) -> Any:
+        """Visits a nested."""
+        match structure.WhichOneof('nested_type_case'):
+            case 'struct_':
+                return self.visit_nested_struct(structure.struct_)
+            case 'list':
+                return self.visit_nested_list(structure.list)
+            case 'map':
+                return self.visit_nested_map(structure.map)
+            case _:
+                raise ValueError(
+                    f'Unexpected nested type: {structure.WhichOneof("nested_type_case")}')
+
+    def visit_enum(self, value: algebra_pb2.Expression.Enum) -> Any:
+        """Visits an enum."""
+        return None
+
+    def visit_struct_select(self,
+                            structure: algebra_pb2.Expression.MaskExpression.StructSelect) -> Any:
+        """Visits a struct select."""
+        for item in structure.struct_items:
+            self.visit_struct_item(item)
+        return None
+
+    def visit_list_select(self, select: algebra_pb2.Expression.MaskExpression.ListSelect) -> Any:
+        """Visits a list select."""
+        for item in select.selection:
+            self.visit_list_select_item(item)
+        if select.HasField('child'):
+            self.visit_select(select.child)
+        return None
+
+    def visit_list_select_item(self, item: algebra_pb2.ListSelectItem) -> Any:
+        """Visits a list select item."""
+        return None
+
+    def visit_map_select(self, select: algebra_pb2.Expression.MaskExpression.MapSelect) -> Any:
+        if select.HasField('child'):
+            self.visit_select(select.child)
+        match select.WhichOneof('select_case'):
+            case 'key':
+                return None
+            case 'expression':
+                return None
+            case _:
+                raise ValueError(f'Unexpected select case: {select.WhichOneof("select_case")}')
+
+    def visit_expression_literal_struct(self, struct: algebra_pb2.Expression.Literal.Struct) -> Any:
+        """Visits an expression literal struct."""
+        for literal in struct.fields:
+            self.visit_literal(literal)
+        return None
+
+    def visit_file_or_files(self, file_or_files: algebra_pb2.FileOrFiles) -> Any:
+        """Visits a file or files."""
+        return None
+
+    def visit_aggregate_function(self, structure: algebra_pb2.AggregateFunction) -> Any:
+        """Visits an aggregate function."""
+        for arg in structure.arguments:
+            self.visit_function_argument(arg)
+        for option in structure.options:
+            self.visit_function_option(option)
+        if structure.HasField('output_type'):
+            self.visit_type(structure.output_type)
+        for sort in structure.sorts:
+            self.visit_sort_field(sort)
+        for arg in structure.args:
+            self.visit_expression(arg)
+        return None
+
+    def visit_reference_segment(self, segment: algebra_pb2.ReferenceSegment) -> Any:
+        match segment.WhichOneof('reference_type_case'):
+            case 'map_key':
+                return self.visit_reference_segment_map_key(segment.map_key)
+            case 'struct_field':
+                return self.visit_reference_segment_struct_field(segment.struct_field)
+            case 'list_element':
+                return self.visit_reference_segment_list_element(segment.list_element)
+            case _:
+                raise ValueError(
+                    f'Unexpected reference segment type: {segment.WhichOneof("reference_type_case")}')
+
+    def visit_relation_common(self, common: algebra_pb2.RelationCommon) -> Any:
+        """Visits a common relation."""
+        if common.HasField('advanced_extension'):
+            self.visit_advanced_extension(common.advanced_extension)
+        return None
+
+    def visit_named_struct(self, struct: algebra_pb2.NamedStruct) -> Any:
+        """Visits a named struct."""
+        return self.visit_struct(struct.struct_)
+
+    def visit_expression(self, expression: algebra_pb2.Expression) -> Any:
+        """Visits an expression."""
+        match expression.WhichOneof('rex_type_case'):
             case 'literal':
-                result = self.visit_literal_expression(expr.literal)
-            case 'unresolved_attribute':
-                result = self.visit_unresolved_attribute(expr.unresolved_attribute)
-            case 'unresolved_function':
-                result = self.visit_unresolved_function(expr.unresolved_function)
-            case 'expression_string':
-                raise NotImplementedError(
-                    'expression_string expression type not supported')
-            case 'unresolved_star':
-                raise NotImplementedError(
-                    'unresolved_star expression type not supported')
-            case 'alias':
-                result = self.visit_alias_expression(expr.alias)
-            case 'cast':
-                result = self.visit_cast_expression(expr.cast)
-            case 'unresolved_regex':
-                raise NotImplementedError(
-                    'unresolved_regex expression type not supported')
-            case 'sort_order':
-                raise NotImplementedError(
-                    'sort_order expression type not supported')
-            case 'lambda_function':
-                raise NotImplementedError(
-                    'lambda_function expression type not supported')
-            case 'window':
-                raise NotImplementedError(
-                    'window expression type not supported')
-            case 'unresolved_extract_value':
-                raise NotImplementedError(
-                    'unresolved_extract_value expression type not supported')
-            case 'update_fields':
-                raise NotImplementedError(
-                    'update_fields expression type not supported')
-            case 'unresolved_named_lambda_variable':
-                raise NotImplementedError(
-                    'unresolved_named_lambda_variable expression type not supported')
-            case 'common_inline_user_defined_function':
-                raise NotImplementedError(
-                    'common_inline_user_defined_function expression type not supported')
+                return self.visit_literal(expression.literal)
+            case 'selection':
+                return self.visit_selection(expression.selection)
+            case
+        return None
+
+    def visit_mask_expression(self, expression: algebra_pb2.MaskExpression) -> Any:
+        """Visits a mask expression."""
+        if expression.HasField('has_select'):
+            self.visit_struct_select(expression.select)
+        return None
+
+    def visit_virtual_table(self, table: algebra_pb2.ReadRel.VirtualTable) -> Any:
+        """Visits a virtual table."""
+        for value in table.values:
+            self.visit_expression_literal_struct(value)
+        return None
+
+    def visit_local_files(self, local_files: algebra_pb2.ReadRel.LocalFiles) -> Any:
+        """Visits a local files."""
+        for item in local_files.items:
+            self.visit_file_or_files(item)
+        if local_files.HasField('advanced_extension'):
+            self.visit_advanced_extension(local_files.advanced_extension)
+        return None
+
+    def visit_named_table(self, table: algebra_pb2.ReadRel.NamedTable) -> Any:
+        """Visits a named table."""
+        if table.HasField('advanced_extension'):
+            self.visit_advanced_extension(table.advanced_extension)
+        return None
+
+    def visit_extension_table(self, table: algebra_pb2.ReadRel.ExtensionTable) -> Any:
+        return None
+
+    def visit_grouping(self, grouping: algebra_pb2.Grouping) -> Any:
+        """Visits a grouping."""
+        for expr in grouping.grouping_expressions:
+            self.visit_expression(expr)
+        return None
+
+    def visit_measure(self, measure: algebra_pb2.AggregateRel.Measure) -> Any:
+        """Visits a measure."""
+        if measure.HasField('measure'):
+            self.visit_aggregate_function(measure.measure)
+        if measure.HasField('filter'):
+            self.visit_expression(measure.filter)
+        return None
+
+    def visit_sort_field(self, sort: algebra_pb2.SortField) -> Any:
+        """Visits a sort field."""
+        if sort.HasField('expr'):
+            self.visit_expression(sort.expr)
+        return None
+
+    def visit_field_reference(self, ref: algebra_pb2.FieldReference) -> Any:
+        """Visits a field reference."""
+        if ref.HasField('direct_reference'):
+            self.visit_reference_segment(ref.direct_reference)
+        if ref.HasField('masked_expression'):
+            self.visit_mask_expression(ref.masked_expression)
+        if ref.HasField('expression'):
+            self.visit_expression(ref.expression)
+        return None
+
+    def visit_expand_field(self, field: algebra_pb2.ExpandField) -> Any:
+        """Visits an expand field."""
+        match field.WhichOneof('field_type_case'):
+            case 'switching_field':
+                for switching_field in field.switching_field.duplicates:
+                    self.visit_expression(switching_field)
+            case 'consistent_field':
+                if field.HasField('consistent_field'):
+                    self.visit_expression(field.consistent_field)
             case _:
-                raise NotImplementedError(
-                    f'Unexpected expression type: {expr.WhichOneof("expr_type")}')
-        return result
+                raise ValueError(f'Unexpected field type: {field.WhichOneof("field_type_case")}')
+        return None
 
-    def visit_expression_to_aggregate_function(
-            self,
-            expr: spark_exprs_pb2.Expression) -> algebra_pb2.AggregateFunction:
-        """Converts a SparkConnect expression to a Substrait expression."""
-        func = algebra_pb2.AggregateFunction()
-        expression = self.visit_expression(expr)
-        match expression.WhichOneof('rex_type'):
-            case 'scalar_function':
-                function = expression.scalar_function
-            case 'window_function':
-                function = expression.window_function
-            case _:
-                raise NotImplementedError(
-                    'only functions of type unresolved function are supported in aggregate '
-                    'relations')
-        func.function_reference = function.function_reference
-        func.arguments.extend(function.arguments)
-        func.options.extend(function.options)
-        func.output_type.CopyFrom(function.output_type)
-        return func
-
-    def visit_read_named_table_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
-        """Converts a read named table relation to a Substrait relation."""
-        raise NotImplementedError('named tables are not yet implemented')
-
-    def visit_schema(self, schema_str: str) -> Optional[type_pb2.NamedStruct]:
-        """Converts the Spark JSON schema string into a Subtrait named type structure."""
-        if not schema_str:
-            return None
-        # TODO -- Deal with potential denial of service due to malformed JSON.
-        schema_data = json.loads(schema_str)
-        schema = type_pb2.NamedStruct()
-        schema.struct.nullability = type_pb2.Type.NULLABILITY_REQUIRED
-        for field in schema_data.get('fields'):
-            schema.names.append(field.get('name'))
-            if field.get('nullable'):
-                nullability = type_pb2.Type.NULLABILITY_NULLABLE
-            else:
-                nullability = type_pb2.Type.NULLABILITY_REQUIRED
-            match field.get('type'):
-                case 'boolean':
-                    field_type = type_pb2.Type(bool=type_pb2.Type.Boolean(nullability=nullability))
-                case 'short':
-                    field_type = type_pb2.Type(i16=type_pb2.Type.I16(nullability=nullability))
-                case 'integer':
-                    field_type = type_pb2.Type(i32=type_pb2.Type.I32(nullability=nullability))
-                case 'long':
-                    field_type = type_pb2.Type(i64=type_pb2.Type.I64(nullability=nullability))
-                case 'string':
-                    field_type = type_pb2.Type(string=type_pb2.Type.String(nullability=nullability))
-                case _:
-                    raise NotImplementedError(f'Unexpected field type: {field.get("type")}')
-
-            schema.struct.types.append(field_type)
-        return schema
-
-    def visit_read_data_source_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
-        """Converts a read data source relation into a Substrait relation."""
-        local = algebra_pb2.ReadRel.LocalFiles()
-        schema = self.visit_schema(rel.schema)
-        symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        for field_name in schema.names:
-            symbol.output_fields.append(field_name)
-        if self._conversion_options.use_named_table_workaround:
-            return algebra_pb2.Rel(
-                read=algebra_pb2.ReadRel(base_schema=schema,
-                                         named_table=algebra_pb2.ReadRel.NamedTable(
-                                             names=['demotable'])))
-        for path in rel.paths:
-            uri_path = path
-            if self._conversion_options.needs_scheme_in_path_uris:
-                if uri_path.startswith('/'):
-                    uri_path = "file:" + uri_path
-            file_or_files = algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=uri_path)
-            match rel.format:
-                case 'parquet':
-                    file_or_files.parquet.CopyFrom(
-                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.ParquetReadOptions())
-                case 'orc':
-                    file_or_files.orc.CopyFrom(
-                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.OrcReadOptions())
-                case 'text':
-                    raise NotImplementedError('the only supported formats are parquet and orc')
-                case 'json':
-                    raise NotImplementedError('the only supported formats are parquet and orc')
-                case 'csv':
-                    # TODO -- Implement CSV once Substrait has support.
-                    pass
-                case 'avro':
-                    raise NotImplementedError('the only supported formats are parquet and orc')
-                case 'arrow':
-                    file_or_files.parquet.CopyFrom(
-                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.ArrowReadOptions())
-                case 'dwrf':
-                    file_or_files.parquet.CopyFrom(
-                        algebra_pb2.ReadRel.LocalFiles.FileOrFiles.DwrfReadOptions())
-                case _:
-                    raise NotImplementedError(f'Unexpected file format: {rel.format}')
-            local.items.append(file_or_files)
-        return algebra_pb2.Rel(read=algebra_pb2.ReadRel(base_schema=schema, local_files=local))
-
-    def create_common_relation(self) -> algebra_pb2.RelCommon:
-        """Creates the common metadata relation used by all relations."""
-        if not self._conversion_options.use_emits_instead_of_direct:
-            return algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct())
-        symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        emit = algebra_pb2.RelCommon.Emit()
-        field_number = 0
-        for _ in symbol.output_fields:
-            emit.output_mapping.append(field_number)
-            field_number += 1
-        return algebra_pb2.RelCommon(emit=emit)
-
-    def visit_read_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
-        """Converts a read relation into a Substrait relation."""
-        match rel.WhichOneof('read_type'):
+    def visit_read_relation(self, rel: algebra_pb2.ReadRel) -> Any:
+        """Visits a read relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('base_schema'):
+            self.visit_named_struct(rel.base_schema)
+        if rel.HasField('filter'):
+            self.visit_expression(rel.filter)
+        if rel.HasField('best_effort_filter'):
+            self.visit_expression(rel.best_effort_filter)
+        if rel.HasField('projection'):
+            self.visit_mask_expression(rel.projection)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        match rel.WhichOneof('read_type_case'):
+            case 'virtual_table':
+                self.visit_virtual_table(rel.virtual_table)
+            case 'local_files':
+                self.visit_local_files(rel.local_files)
             case 'named_table':
-                result = self.visit_read_named_table_relation(rel.named_table)
-            case 'data_source':
-                result = self.visit_read_data_source_relation(rel.data_source)
+                self.visit_named_table(rel.named_table)
+            case 'extension_table':
+                self.visit_extension_table(rel.extension_table)
             case _:
-                raise ValueError(f'Unexpected read type: {rel.WhichOneof("read_type")}')
-        result.read.common.CopyFrom(self.create_common_relation())
-        return result
+                raise ValueError(f'Unexpected read type: {rel.WhichOneof("read_type_case")}')
+        return None
 
-    def visit_filter_relation(self, rel: spark_relations_pb2.Filter) -> algebra_pb2.Rel:
-        """Converts a filter relation into a Substrait relation."""
-        filter_rel = algebra_pb2.FilterRel(input=self.visit_relation(rel.input))
-        self.update_field_references(rel.input.common.plan_id)
-        filter_rel.common.CopyFrom(self.create_common_relation())
-        filter_rel.condition.CopyFrom(self.visit_expression(rel.condition))
-        return algebra_pb2.Rel(filter=filter_rel)
+    def visit_filter_relation(self, rel: algebra_pb2.FilterRel) -> Any:
+        """Visits a filter relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('condition'):
+            self.visit_expression(rel.condition)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        return None
 
-    def visit_sort_relation(self, rel: spark_relations_pb2.Sort) -> algebra_pb2.Rel:
-        """Converts a sort relation into a Substrait relation."""
-        sort = algebra_pb2.SortRel(input=self.visit_relation(rel.input))
-        self.update_field_references(rel.input.common.plan_id)
-        sort.common.CopyFrom(self.create_common_relation())
-        for order in rel.order:
-            if order.direction == spark_exprs_pb2.Expression.SortOrder.SORT_DIRECTION_ASCENDING:
-                if order.null_ordering == spark_exprs_pb2.Expression.SortOrder.SORT_NULLS_FIRST:
-                    direction = algebra_pb2.SortField.SORT_DIRECTION_ASC_NULLS_FIRST
-                else:
-                    direction = algebra_pb2.SortField.SORT_DIRECTION_ASC_NULLS_LAST
-            else:
-                if order.null_ordering == spark_exprs_pb2.Expression.SortOrder.SORT_NULLS_FIRST:
-                    direction = algebra_pb2.SortField.SORT_DIRECTION_DESC_NULLS_FIRST
-                else:
-                    direction = algebra_pb2.SortField.SORT_DIRECTION_DESC_NULLS_LAST
-            sort.sorts.append(algebra_pb2.SortField(
-                expr=self.visit_expression(order.child),
-                direction=direction))
-        return algebra_pb2.Rel(sort=sort)
+    def visit_fetch_relation(self, rel: algebra_pb2.FetchRel) -> Any:
+        """Visits a fetch relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        return None
 
-    def visit_limit_relation(self, rel: spark_relations_pb2.Limit) -> algebra_pb2.Rel:
-        """Converts a limit relation into a Substrait FetchRel relation."""
-        input_relation = self.visit_relation(rel.input)
-        self.update_field_references(rel.input.common.plan_id)
-        fetch = algebra_pb2.FetchRel(common=self.create_common_relation(), input=input_relation,
-                                     count=rel.limit)
-        return algebra_pb2.Rel(fetch=fetch)
+    def visit_aggregate_relation(self, rel: algebra_pb2.AggregateRel) -> Any:
+        """Visits an aggregate relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        for grouping in rel.groupings:
+            self.visit_grouping(grouping)
+        for measure in rel.measures:
+            self.visit_measure(measure)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        return None
 
-    def visit_aggregate_relation(self, rel: spark_relations_pb2.Aggregate) -> algebra_pb2.Rel:
-        """Converts an aggregate relation into a Substrait relation."""
-        aggregate = algebra_pb2.AggregateRel(input=self.visit_relation(rel.input))
-        self.update_field_references(rel.input.common.plan_id)
-        aggregate.common.CopyFrom(self.create_common_relation())
-        symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        for grouping in rel.grouping_expressions:
-            aggregate.groupings.append(
-                algebra_pb2.AggregateRel.Grouping(
-                    grouping_expressions=[self.visit_expression(grouping)]))
-            # TODO -- Use the same field name as what was selected in the grouping.
-            symbol.generated_fields.append('grouping')
-        for expr in rel.aggregate_expressions:
-            aggregate.measures.append(
-                algebra_pb2.AggregateRel.Measure(
-                    measure=self.visit_expression_to_aggregate_function(expr))
-            )
-            symbol.generated_fields.append(expr.alias.name[0])
-        symbol.output_fields.clear()
-        symbol.output_fields.extend(symbol.generated_fields)
-        return algebra_pb2.Rel(aggregate=aggregate)
+    def visit_sort_relation(self, rel: algebra_pb2.SortRel) -> Any:
+        """Visits a sort relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        for sort in rel.sorts:
+            self.visit_sort_field(sort)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        return None
 
-    def visit_show_string_relation(self, rel: spark_relations_pb2.ShowString) -> algebra_pb2.Rel:
-        """Converts a show string relation into a Substrait project relation."""
-        if not self._conversion_options.implement_show_string:
-            result = self.visit_relation(rel.input)
-            self.update_field_references(rel.input.common.plan_id)
-            return result
+    def visit_join_relation(self, rel: algebra_pb2.JoinRel) -> Any:
+        """Visits a join relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('left'):
+            self.visit_relation(rel.left)
+        if rel.HasField('right'):
+            self.visit_relation(rel.right)
+        if rel.HasField('expression'):
+            self.visit_expression(rel.expression)
+        if rel.HasField('post_join_filter'):
+            self.visit_expression(rel.post_join_filter)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
 
-        # TODO -- Implement using num_rows by wrapping the input in a fetch relation.
+    def visit_project_relation(self, rel: algebra_pb2.ProjectRel) -> Any:
+        """Visits a project relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        for expr in rel.expressions:
+            self.visit_expression(expr)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
 
-        # TODO -- Implement what happens if truncate is not set or less than two.
-        # TODO -- Implement what happens when rel.vertical is true.
-        input_rel = self.visit_relation(rel.input)
-        self.update_field_references(rel.input.common.plan_id)
-        symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        # TODO -- Pull the columns from symbol.input_fields.
-        # TODO -- Use string_agg to aggregate all of the column input into a single string.
-        # TODO -- Use a project to output a single field with the table info in it.
-        symbol.output_fields.clear()
-        symbol.output_fields.append('show_string')
+    def visit_set_relation(self, rel: algebra_pb2.SetRel) -> Any:
+        """Visits a set relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        for input in rel.inputs:
+            self.visit_relation(input)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
 
-        project = algebra_pb2.ProjectRel(input=input_rel)
-        project.expressions.append(
-            algebra_pb2.Expression(literal=self.visit_string_literal('hiya')))
-        project.common.emit.output_mapping.append(len(symbol.input_fields))
-        return algebra_pb2.Rel(project=project)
+    def visit_extension_single_relation(self, rel: algebra_pb2.ExtensionSingleRel) -> Any:
+        """Visits an extension single relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        return None
 
-    def visit_with_columns_relation(
-            self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
-        """Converts a with columns relation into a Substrait project relation."""
-        input_rel = self.visit_relation(rel.input)
-        project = algebra_pb2.ProjectRel(input=input_rel)
-        self.update_field_references(rel.input.common.plan_id)
-        symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        field_number = 0
-        if self._conversion_options.use_project_emit_workaround:
-            for _ in symbol.output_fields:
-                project.expressions.append(algebra_pb2.Expression(
-                    selection=algebra_pb2.Expression.FieldReference(
-                        direct_reference=algebra_pb2.Expression.ReferenceSegment(
-                            struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
-                                field=field_number)))))
-            field_number += 1
-        for alias in rel.aliases:
-            # TODO -- Handle the common.emit.output_mapping columns correctly.
-            project.expressions.append(self.visit_expression(alias.expr))
-            # TODO -- Add unique intermediate names.
-            symbol.generated_fields.append('intermediate')
-            symbol.output_fields.append('intermediate')
-        project.common.CopyFrom(self.create_common_relation())
-        if (self._conversion_options.use_project_emit_workaround or
-                self._conversion_options.use_project_emit_workaround2):
-            field_number = 0
-            for _ in symbol.output_fields:
-                project.common.emit.output_mapping.append(field_number)
-                field_number += 1
-            for _ in rel.aliases:
-                project.common.emit.output_mapping.append(field_number)
-                field_number += 1
-        return algebra_pb2.Rel(project=project)
+    def visit_extension_multi_relation(self, rel: algebra_pb2.ExtensionMultiRel) -> Any:
+        """Visits an extension multi relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        for input in rel.inputs:
+            self.visit_relation(input)
+        return None
 
-    def visit_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
-        """Converts a Spark relation into a Substrait one."""
-        self._symbol_table.add_symbol(rel.common.plan_id, parent=self._current_plan_id,
-                                      symbol_type=rel.WhichOneof('rel_type'))
-        old_plan_id = self._current_plan_id
-        self._current_plan_id = rel.common.plan_id
-        match rel.WhichOneof('rel_type'):
+    def visit_extension_leaf_relation(self, rel: algebra_pb2.ExtensionLeafRel) -> Any:
+        """Visits an extension leaf relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        return None
+
+    def visit_cross_relation(self, rel: algebra_pb2.CrossRel) -> Any:
+        """Visits a cross relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('left'):
+            self.visit_relation(rel.left)
+        if rel.HasField('right'):
+            self.visit_relation(rel.right)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
+
+    def visit_reference_relation(self, rel: algebra_pb2.ReferenceRel) -> Any:
+        """Visits a reference relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        return None
+
+    def visit_write_relation(self, rel: algebra_pb2.WriteRel) -> Any:
+        """Visits a write relation."""
+        # TODO -- Add support for write type.
+        if rel.HasField('table_schema'):
+            self.visit_named_struct(rel.table_schema)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        return None
+
+    def visit_ddl_relation(self, rel: algebra_pb2.DDLRel) -> Any:
+        """Visits a DDL relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('table_schema'):
+            self.visit_named_struct(rel.table_schema)
+        if rel.HasField('table_defaults'):
+            self.visit_expression_literal_struct(rel.table_defaults)
+        if rel.HasField('view_definition'):
+            self.visit_relation(rel.view_definition)
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        return None
+
+    def visit_hash_join_relation(self, rel: algebra_pb2.HashJoinRel) -> Any:
+        """Visits a hash join relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('left'):
+            self.visit_relation(rel.left)
+        if rel.HasField('right'):
+            self.visit_relation(rel.right)
+        for key in rel.left_keys:
+            self.visit_field_reference(key)
+        for key in rel.right_keys:
+            self.visit_field_reference(key)
+        if rel.HasField('post_join_filter'):
+            self.visit_expression(rel.post_join_filter)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
+
+    def visit_merge_join_loop_relation(self, rel: algebra_pb2.MergeJoinLoopRel) -> Any:
+        """Visits a merge join loop relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('left'):
+            self.visit_relation(rel.left)
+        if rel.HasField('right'):
+            self.visit_relation(rel.right)
+        for key in rel.left_keys:
+            self.visit_field_reference(key)
+        for key in rel.right_keys:
+            self.visit_field_reference(key)
+        if rel.HasField('post_join_filter'):
+            self.visit_expression(rel.post_join_filter)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
+
+    def visit_nested_loop_join_relation(self, rel: algebra_pb2.NestedLoopJoinRel) -> Any:
+        """Visits a nested loop join relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('left'):
+            self.visit_relation(rel.left)
+        if rel.HasField('right'):
+            self.visit_relation(rel.right)
+        if rel.HasField('expression'):
+            self.visit_expression(rel.expression)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
+
+    def visit_window_relation(self, rel: algebra_pb2.WindowRel) -> Any:
+        """Visits a window relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        for func in rel.window_functions:
+            self.visit_window_function(func)
+        for exp in rel.partition_expressions:
+            self.visit_expression(exp)
+        for sort in rel.sorts:
+            self.visit_sort_field(sort)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
+
+    def visit_exchange_relation(self, rel: algebra_pb2.ExchangeRel) -> Any:
+        """Visits an exchange relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
+
+    def visit_expand_relation(
+            self, rel: algebra_pb2.ExpandRel) -> Any:
+        """Visits an expand relation."""
+        if rel.HasField('common'):
+            self.visit_relation_common(rel.common)
+        if rel.HasField('input'):
+            self.visit_relation(rel.input)
+        for field in rel.fields:
+            self.visit_expand_field(field)
+        if rel.HasField('advanced_extension'):
+            self.visit_advanced_extension(rel.advanced_extension)
+        return None
+
+    def visit_relation(self, rel: algebra_pb2.Relation) -> Any:
+        """Visits a Substrait relation."""
+        match rel.WhichOneof('rel_type_case'):
             case 'read':
                 result = self.visit_read_relation(rel.read)
             case 'filter':
                 result = self.visit_filter_relation(rel.filter)
-            case 'sort':
-                result = self.visit_sort_relation(rel.sort)
-            case 'limit':
-                result = self.visit_limit_relation(rel.limit)
+            case 'fetch':
+                result = self.visit_fetch_relation(rel.fetch)
             case 'aggregate':
                 result = self.visit_aggregate_relation(rel.aggregate)
-            case 'show_string':
-                result = self.visit_show_string_relation(rel.show_string)
-            case 'with_columns':
-                result = self.visit_with_columns_relation(rel.with_columns)
+            case 'sort':
+                result = self.visit_sort_relation(rel.sort)
+            case 'join':
+                result = self.visit_join_relation(rel.join)
+            case 'project':
+                result = self.visit_project_relation(rel.project)
+            case 'extension_single':
+                result = self.visit_extension_single_relation(rel.extension_single)
+            case 'extension_multi':
+                result = self.visit_extension_multi_relation(rel.extension_multi)
+            case 'extension_leaf':
+                result = self.visit_extension_leaf_relation(rel.extension_leaf)
+            case 'cross':
+                result = self.visit_cross_relation(rel.cross)
+            case 'reference':
+                result = self.visit_reference_relation(rel.reference)
+            case 'write':
+                result = self.visit_write_relation(rel.write)
+            case 'ddl':
+                result = self.visit_ddl_relation(rel.ddl)
+            case 'hash_join':
+                result = self.visit_hash_join_relation(rel.hash_join)
+            case 'merge_join':
+                result = self.visit_merge_join_relation(rel.merge_join)
+            case 'nested_loop_join':
+                result = self.visit_nested_loop_join_relation(rel.nested_loop_join)
+            case 'window':
+                result = self.visit_window_relation(rel.window)
+            case 'exchange':
+                result = self.visit_exchange_relation(rel.exchange)
+            case 'expand':
+                result = self.visit_expand_relation(rel.expand)
             case _:
                 raise ValueError(f'Unexpected rel type: {rel.WhichOneof("rel_type")}')
-        self._current_plan_id = old_plan_id
         return result
 
-    def visit_plan(self, plan: plan_pb2.Plan) -> None:
-        """Visits all the relations in a Substrait plan."""
-        if plan.HasField('rel_root'):
-            self.visit_root_relation(plan.rel_root)
+    def visit_relation_root(self, rel: plan_pb2.RelRoot) -> Any:
+        """Visits a relation root."""
+        return self.visit_relation(rel.relation)
+
+    def visit_extension_uri(self, uri: extensions_pb2.SimpleExtensionsURI) -> Any:
+        """Visits an extension URI."""
+        return None
+
+    def visit_extension(self, extension: extensions_pb2.SimpleExtensionDeclaration) -> Any:
+        """Visits an extension."""
+        return None
+
+    def visit_plan_relation(self, relation: plan_pb2.PlanRel) -> Any:
+        """Visits a plan relation."""
+        match relation.WhichOneof('rel_type_case'):
+            case 'rel':
+                return self.visit_relation(relation.rel)
+            case 'root':
+                return self.visit_relation_root(relation.root)
+            case _:
+                raise ValueError(
+                    f'Unexpected relation type: {relation.WhichOneof("rel_type_case")}')
+
+    def visit_advanced_extension(self, extension: extensions_pb2.AdvancedExtension) -> Any:
+        """Visits an advanced extension."""
+        return None
+
+    def visit_expected_type_url(self, url: str) -> Any:
+        """Visits an expected type URL."""
+        return None
+
+    def visit_plan(self, plan: plan_pb2.Plan) -> Any:
+        """Visits the entire Substrait plan."""
+        for uri in plan.extension_uris:
+            self.visit_extension(uri)
+        for extension in plan.extensions:
+            self.visit_extension(extension)
+        for relation in plan.relations:
+            self.visit_plan_relation(relation)
+        if plan.HasField('advanced_extensions'):
+            self.visit_advanced_extensions(plan.advanced_extensions)
+        for url in plan.expected_type_urls:
+            self.visit_expected_type_url(url)
