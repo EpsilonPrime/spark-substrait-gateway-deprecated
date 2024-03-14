@@ -3,6 +3,8 @@
 from pathlib import Path
 
 import adbc_driver_duckdb.dbapi
+import datafusion
+import datafusion.substrait
 import duckdb
 import pyarrow
 from pyarrow import substrait
@@ -26,6 +28,22 @@ class AdbcBackend:
             cur.adbc_statement.set_substrait_plan(plan_data)
             tbl = cur.fetch_arrow_table()
             return tbl
+
+    def execute_with_datafusion(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
+        """Executes the given Substrait plan against Datafusion."""
+        ctx = datafusion.SessionContext()
+        # TODO -- Handle registration by scanning and then rewriting the plan.
+        ctx.register_parquet("demotable", 'artists.parquet')
+
+        plan_data = plan.SerializeToString()
+        substrait_plan = datafusion.substrait.substrait.serde.deserialize_bytes(plan_data)
+        logical_plan = datafusion.substrait.substrait.consumer.from_substrait_plan(
+            ctx, substrait_plan
+        )
+
+        # Create a DataFrame from a deserialized logical plan
+        df_result = ctx.create_dataframe_from_logical_plan(logical_plan)
+        return df_result.to_arrow_table()
 
     def execute_with_duckdb(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against DuckDB."""
@@ -51,7 +69,7 @@ class AdbcBackend:
             case Backend.ARROW:
                 return self.execute_with_arrow(plan)
             case Backend.DATAFUSION:
-                raise ValueError('Datafusion support has been temporarily removed (see #16).')
+                return self.execute_with_datafusion(plan)
             case Backend.DUCKDB:
                 if options.use_adbc:
                     return self.execute_with_duckdb_over_adbc(plan)
