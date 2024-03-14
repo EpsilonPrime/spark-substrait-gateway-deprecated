@@ -15,12 +15,12 @@ dependencies:
   - python-substrait
   - mypy-protobuf
   - types-protobuf
+  - datafusion
   - Faker
   - pip:
     - adbc_driver_manager
     - pyarrow
     - duckdb
-    - datafusion
     - pyspark
     - pandas >= 1.0.5
     - substrait-validator
