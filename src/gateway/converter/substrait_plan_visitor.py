@@ -157,9 +157,9 @@ class SubstraitPlanVisitor:
             case 'enum':
                 return None
             case 'type':
-                return self.visitType(argument.type)
+                return self.visit_type(argument.type)
             case 'value':
-                return self.visitExpression(argument.value)
+                return self.visit_expression(argument.value)
             case _:
                 raise ValueError(
                     f'Unexpected argument type: {argument.WhichOneof("arg_type_case")}')
@@ -662,7 +662,7 @@ class SubstraitPlanVisitor:
         if rel.HasField('advanced_extension'):
             self.visit_advanced_extension(rel.advanced_extension)
 
-    def visit_merge_join_loop_relation(self, rel: algebra_pb2.MergeJoinLoopRel) -> Any:
+    def visit_merge_join_relation(self, rel: algebra_pb2.MergeJoinRel) -> Any:
         """Visits a merge join loop relation."""
         if rel.HasField('common'):
             self.visit_relation_common(rel.common)
@@ -814,6 +814,6 @@ class SubstraitPlanVisitor:
         for relation in plan.relations:
             self.visit_plan_relation(relation)
         if plan.HasField('advanced_extensions'):
-            self.visit_advanced_extensions(plan.advanced_extensions)
+            self.visit_advanced_extension(plan.advanced_extensions)
         for url in plan.expected_type_urls:
             self.visit_expected_type_url(url)
