@@ -27,8 +27,8 @@ class ReplaceLocalFilesWithNamedTable(SubstraitPlanVisitor):
         """Visits a read relation node."""
         super().visit_read_relation(rel)
         if rel.HasField('local_files'):
-            # TODO -- Replace this with a named table.
-            pass
+            rel.ClearField('local_files')
+            rel.named_table.names.append(self._file_groups[-1][0])
 
     def visit_plan(self, plan: plan_pb2.Plan) -> List[Tuple[str, List[str]]]:
         """Modifies the provided plan so that Local Files are replaced with Named Tables."""
