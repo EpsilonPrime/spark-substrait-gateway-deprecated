@@ -7,6 +7,7 @@ from substrait.gen.proto import algebra_pb2, plan_pb2
 from gateway.converter.substrait_plan_visitor import SubstraitPlanVisitor
 
 
+# pylint: disable=no-member
 class ReplaceLocalFilesWithNamedTable(SubstraitPlanVisitor):
     """Finds all local files in a Substrait plan."""
 

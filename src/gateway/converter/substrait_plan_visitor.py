@@ -17,17 +17,20 @@ class SubstraitPlanVisitor:
         if subquery.HasField('input'):
             self.visit_relation(subquery.input)
 
-    def visit_subquery_in_predicate(self, subquery: algebra_pb2.Expression.Subquery.InPredicate) -> Any:
+    def visit_subquery_in_predicate(self,
+                                    subquery: algebra_pb2.Expression.Subquery.InPredicate) -> Any:
         """Visits an in predicate."""
         if subquery.HasField('haystack'):
             self.visit_relation(subquery.haystack)
 
-    def visit_subquery_set_predicate(self, subquery: algebra_pb2.Expression.Subquery.SetPredicate) -> Any:
+    def visit_subquery_set_predicate(self,
+                                     subquery: algebra_pb2.Expression.Subquery.SetPredicate) -> Any:
         """Visits a set predicate."""
         if subquery.HasField('tuples'):
             self.visit_relation(subquery.tuples)
 
-    def visit_subquery_set_comparison(self, subquery: algebra_pb2.Expression.Subquery.SetComparison) -> Any:
+    def visit_subquery_set_comparison(
+            self, subquery: algebra_pb2.Expression.Subquery.SetComparison) -> Any:
         """Visits a set comparison."""
         if subquery.HasField('left'):
             self.visit_expression(subquery.left)
@@ -61,7 +64,8 @@ class SubstraitPlanVisitor:
         if item.HasField('child'):
             self.visit_select(item.child)
 
-    def visit_reference_segment_map_key(self, map_key: algebra_pb2.Expression.ReferenceSegment.MapKey) -> Any:
+    def visit_reference_segment_map_key(
+            self, map_key: algebra_pb2.Expression.ReferenceSegment.MapKey) -> Any:
         """Visits a map key."""
         if map_key.HasField('map_key'):
             self.visit_literal(map_key.map_key)
@@ -320,7 +324,8 @@ class SubstraitPlanVisitor:
         if select.HasField('child'):
             self.visit_select(select.child)
 
-    def visit_list_select_item(self, _: algebra_pb2.Expression.MaskExpression.ListSelect.ListSelectItem) -> Any:
+    def visit_list_select_item(
+            self, _: algebra_pb2.Expression.MaskExpression.ListSelect.ListSelectItem) -> Any:
         """Visits a list select item."""
         return None
 
