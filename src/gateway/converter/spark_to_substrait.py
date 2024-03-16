@@ -425,7 +425,7 @@ class SparkSubstraitConverter:
                                      count=rel.limit)
         return algebra_pb2.Rel(fetch=fetch)
 
-    def determine_name(self, expr: spark_exprs_pb2.Expression) -> Optional[str]:
+    def determine_expression_name(self, expr: spark_exprs_pb2.Expression) -> Optional[str]:
         """Determines the name of the expression."""
         if expr.HasField('alias'):
             return expr.alias.name[0]
@@ -450,7 +450,7 @@ class SparkSubstraitConverter:
                 algebra_pb2.AggregateRel.Measure(
                     measure=self.convert_expression_to_aggregate_function(expr))
             )
-            symbol.generated_fields.append(self.determine_name(expr))
+            symbol.generated_fields.append(self.determine_expression_name(expr))
         symbol.output_fields.clear()
         symbol.output_fields.extend(symbol.generated_fields)
         return algebra_pb2.Rel(aggregate=aggregate)
