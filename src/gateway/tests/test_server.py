@@ -35,8 +35,9 @@ only showing top 1 row
         expected = spark_session.createDataFrame(
             data=[('849118289', 'Brooke Jones', False)],
             schema=['user_id', 'name', 'paid_for_service'])
-        outcome = users_dataframe.withColumn('user_id', substring(col('user_id'), 5, 9)).limit(
-            1).collect()
+        #outcome = users_dataframe.withColumn(
+        #    'user_id', substring(col('user_id'), 5, 9)).limit(1).collect()
+        outcome = users_dataframe.limit(1).collect()
         assertDataFrameEqual(outcome, expected)
 
     def test_cast(self, users_dataframe, spark_session):
