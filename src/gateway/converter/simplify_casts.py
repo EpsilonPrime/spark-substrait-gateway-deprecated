@@ -10,7 +10,7 @@ from gateway.converter.substrait_plan_visitor import SubstraitPlanVisitor
 # pylint: disable=no-member,fixme
 class SimplifyCasts(SubstraitPlanVisitor):
     """Replaces all cast expressions with projects of casts instead."""
-    _pass: int
+    _pass: int  # TODO -- Investigate removing the need for multiple passes.
     _current_relation: algebra_pb2.Rel
     _rewrite_expressions: List[algebra_pb2.Expression]
 
