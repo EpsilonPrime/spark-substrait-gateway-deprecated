@@ -31,7 +31,6 @@ class SparkSubstraitConverter:
         self._conversion_options = options
         self._seen_generated_names = {}
 
-
     def lookup_function_by_name(self, name: str) -> ExtensionFunction:
         """Finds the function reference for a given Spark function name."""
         if name in self._functions:
@@ -289,7 +288,7 @@ class SparkSubstraitConverter:
         raise NotImplementedError('named tables are not yet implemented')
 
     def convert_schema(self, schema_str: str) -> Optional[type_pb2.NamedStruct]:
-        """Converts the Spark JSON schema string into a Subtrait named type structure."""
+        """Converts the Spark JSON schema string into a Substrait named type structure."""
         if not schema_str:
             return None
         # TODO -- Deal with potential denial of service due to malformed JSON.
