@@ -86,8 +86,8 @@ class SimplifyCasts(SubstraitPlanVisitor):
         super().visit_relation(rel)
         if self._rewrite_expressions:
             old_input = self.find_single_input(rel)
-            # TODO -- Add the common rel.
             new_input = algebra_pb2.Rel(
+                common=algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct()),
                 project=algebra_pb2.ProjectRel(input=old_input))
             for expr in self._rewrite_expressions:
                 new_input.project.expressions.append(expr)
