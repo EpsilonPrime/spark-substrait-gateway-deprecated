@@ -8,7 +8,9 @@ from substrait.gen.proto import plan_pb2
 from gateway.converter.simplify_casts import SimplifyCasts
 
 
+# pylint: disable=E1101
 def main():
+    """Converts the provided plans from the DuckDB Substrait dialect to Acero's."""
     args = sys.argv[1:]
     if len(args) != 2:
         print("Usage: python duckdb_substrait_to_arrow.py <path to plan> <path to output plan>")

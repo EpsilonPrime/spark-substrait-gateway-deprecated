@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """A library to search Substrait plan for local files."""
-from typing import Any, List, Tuple
+from typing import Any, List
 
-from substrait.gen.proto import algebra_pb2, plan_pb2
+from substrait.gen.proto import algebra_pb2
 
 from gateway.converter.substrait_plan_visitor import SubstraitPlanVisitor
 
 
-# pylint: disable=no-member
+# pylint: disable=no-member,fixme
 class SimplifyCasts(SubstraitPlanVisitor):
     """Replaces all cast expressions with projects of casts instead."""
     _pass: int
@@ -29,7 +29,7 @@ class SimplifyCasts(SubstraitPlanVisitor):
                     self._rewrite_expressions.append(cast.input)
             case 2:
                 # Rewrite the cast to use a selection of our new projection.
-                field_reference = 9999
+                field_reference = 9999  # TODO -- Calculate the right value.
                 cast.input.CopyFrom(algebra_pb2.Expression(algebra_pb2.Expression.FieldReference(
                     direct_reference=algebra_pb2.Expression.ReferenceSegment(
                         struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
