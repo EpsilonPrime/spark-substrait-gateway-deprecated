@@ -5,6 +5,7 @@ import sys
 from google.protobuf import json_format
 from substrait.gen.proto import plan_pb2
 
+from gateway.converter.label_relations import LabelRelations, UnlabelRelations
 from gateway.converter.simplify_casts import SimplifyCasts
 
 
@@ -21,7 +22,9 @@ def main():
     duckdb_plan = json_format.Parse(plan_prototext, plan_pb2.Plan())
 
     arrow_plan = duckdb_plan
+    LabelRelations().visit_plan(arrow_plan)
     SimplifyCasts().visit_plan(arrow_plan)
+    UnlabelRelations().visit_plan(arrow_plan)
 
     with open(args[1], "wt", encoding='utf-8') as file:
         file.write(json_format.MessageToJson(arrow_plan))

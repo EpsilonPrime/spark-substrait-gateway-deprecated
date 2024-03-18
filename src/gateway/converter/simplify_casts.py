@@ -16,6 +16,7 @@ class SimplifyCasts(SubstraitPlanVisitor):
 
     def __init__(self):
         super().__init__()
+        self._seen_casts = None
         self._rewrite_expressions: List[algebra_pb2.Expression] = []
         self._previous_rewrite_expressions: List[List[algebra_pb2.Expression]] = []
 
@@ -30,6 +31,7 @@ class SimplifyCasts(SubstraitPlanVisitor):
             case 2:
                 # Rewrite the cast to use a selection of our new projection.
                 field_reference = 9999  # TODO -- Calculate the right value.
+                self._seen_casts += 1
                 cast.input.CopyFrom(algebra_pb2.Expression(algebra_pb2.Expression.FieldReference(
                     direct_reference=algebra_pb2.Expression.ReferenceSegment(
                         struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
@@ -87,12 +89,14 @@ class SimplifyCasts(SubstraitPlanVisitor):
         if self._rewrite_expressions:
             old_input = self.find_single_input(rel)
             new_input = algebra_pb2.Rel(
-                common=algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct()),
-                project=algebra_pb2.ProjectRel(input=old_input))
+                project=algebra_pb2.ProjectRel(
+                    common=algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct()),
+                    input=old_input))
             for expr in self._rewrite_expressions:
                 new_input.project.expressions.append(expr)
             self.replace_single_input(rel, new_input)
             self._pass = 2
             # Go through a second time rewriting the casts.
+            self._seen_casts = 0
             super().visit_relation(rel)
         self._rewrite_expressions = self._previous_rewrite_expressions.pop()
