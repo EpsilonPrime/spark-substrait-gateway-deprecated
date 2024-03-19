@@ -107,5 +107,6 @@ class SimplifyCasts(SubstraitPlanVisitor):
             for expr in self._rewrite_expressions:
                 new_input.project.expressions.append(expr)
             self.replace_single_input(rel, new_input)
+            # TODO -- Update this relation to not pass on the new exposed fields.
 
         self._rewrite_expressions = self._previous_rewrite_expressions.pop()
