@@ -21,10 +21,38 @@ def get_common_section(rel: algebra_pb2.Rel) -> algebra_pb2.RelCommon:
             result = rel.aggregate.common
         case 'sort':
             result = rel.sort.common
+        case 'join':
+            result = rel.join.common
         case 'project':
             result = rel.project.common
+        case 'set':
+            result = rel.set.common
         case 'extension_single':
             result = rel.extension_single.common
+        case 'extension_multi':
+            result = rel.extension_multi.common
+        case 'extension_leaf':
+            result = rel.extension_leaf.common
+        case 'cross':
+            result = rel.cross.common
+        case 'reference':
+            raise ValueError('Reference relations do not have a common section')
+        case 'write':
+            result = rel.write.common
+        case 'ddl':
+            result = rel.ddl.common
+        case 'hash_join':
+            result = rel.hash_join.common
+        case 'merge_join':
+            result = rel.merge_join.common
+        case 'nested_loop_join':
+            result = rel.nested_loop_join.common
+        case 'window':
+            result = rel.window.common
+        case 'exchange':
+            result = rel.exchange.common
+        case 'expand':
+            result = rel.expand.common
         case _:
             raise NotImplementedError('Finding the common section for type '
                                       f'{rel.WhichOneof('rel_type')} is not implemented')
