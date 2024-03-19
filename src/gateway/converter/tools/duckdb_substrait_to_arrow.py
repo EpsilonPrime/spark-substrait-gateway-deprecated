@@ -23,10 +23,10 @@ def main():
     duckdb_plan = json_format.Parse(plan_prototext, plan_pb2.Plan())
 
     arrow_plan = duckdb_plan
-    LabelRelations().visit_plan(arrow_plan)
-    symbol_table = OutputFieldTrackingVisitor().visit_plan(arrow_plan)
-    SimplifyCasts(symbol_table).visit_plan(arrow_plan)
-    UnlabelRelations().visit_plan(arrow_plan)
+    LabelRelations().visit_plan(arrow_plan)  # Add plan ids to every relation.
+    symbol_table = OutputFieldTrackingVisitor().visit_plan(arrow_plan)  # Track the output fields.
+    SimplifyCasts(symbol_table).visit_plan(arrow_plan)  # Replace all casts with projects of casts.
+    UnlabelRelations().visit_plan(arrow_plan)  # Remove the plan id markers.
 
     with open(args[1], "wt", encoding='utf-8') as file:
         file.write(json_format.MessageToJson(arrow_plan))
