@@ -1,76 +1,86 @@
 {
-  "extensionUris": [
-    {
-      "extensionUriAnchor": 1,
-      "uri": "/functions_boolean.yaml"
-    }
-  ],
-  "extensions": [
-    {
-      "extensionFunction": {
-        "extensionUriReference": 1,
-        "name": "or:bool"
-      }
-    }
-  ],
   "relations": [
     {
       "root": {
         "input": {
           "project": {
+            "common": {
+              "output_mapping": [
+                0,
+                1,
+                2
+              ]
+            },
             "input": {
-              "read": {
-                "common": {
-                  "direct": {}
-                },
-                "baseSchema": {
-                  "names": [
-                    "r_regionkey",
-                    "r_name",
-                    "r_comment"
-                  ],
-                  "struct": {
-                    "types": [
-                      {
-                        "i32": {
-                          "nullability": "NULLABILITY_REQUIRED"
-                        }
-                      },
-                      {
-                        "string": {
-                          "nullability": "NULLABILITY_REQUIRED"
-                        }
-                      },
-                      {
-                        "string": {
-                          "nullability": "NULLABILITY_NULLABLE"
-                        }
+              "project": {
+                "common": {},
+                "input": {
+                  "read": {
+                    "common": {
+                      "direct": {}
+                    },
+                    "baseSchema": {
+                      "names": [
+                        "r_regionkey",
+                        "r_name",
+                        "r_comment"
+                      ],
+                      "struct": {
+                        "types": [
+                          {
+                            "i32": {
+                              "nullability": "NULLABILITY_REQUIRED"
+                            }
+                          },
+                          {
+                            "string": {
+                              "nullability": "NULLABILITY_REQUIRED"
+                            }
+                          },
+                          {
+                            "string": {
+                              "nullability": "NULLABILITY_NULLABLE"
+                            }
+                          }
+                        ],
+                        "nullability": "NULLABILITY_REQUIRED"
                       }
-                    ],
-                    "nullability": "NULLABILITY_REQUIRED"
+                    },
+                    "namedTable": {
+                      "names": [
+                        "#2"
+                      ]
+                    }
                   }
                 },
-                "namedTable": {
-                  "names": [
-                    "#2"
-                  ]
-                }
+                "expressions": [
+                  {
+                    "cast": {
+                      "type": {
+                        "fixedChar": {
+                          "length": 25,
+                          "nullability": "NULLABILITY_REQUIRED"
+                        }
+                      },
+                      "input": {
+                        "selection": {
+                          "directReference": {
+                            "structField": {
+                              "field": 3
+                            }
+                          },
+                          "rootReference": {}
+                        }
+                      }
+                    }
+                  }
+                ]
               }
             },
             "expressions": [
               {
-                "cast": {
-                  "type": {
-                    "fixedChar": {
-                      "length": 25,
-                      "nullability": "NULLABILITY_REQUIRED"
-                    }
-                  },
-                  "input": {
-                    "literal": {
-                      "fixedChar": "DELIVER IN PERSON"
-                    }
-                  }
+                "literal": {
+                  "fixedChar": "DELIVER IN PERSON"
                 }
               }
             ]

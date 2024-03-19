@@ -1,18 +1,4 @@
 {
-  "extensionUris": [
-    {
-      "extensionUriAnchor": 1,
-      "uri": "/functions_boolean.yaml"
-    }
-  ],
-  "extensions": [
-    {
-      "extensionFunction": {
-        "extensionUriReference": 1,
-        "name": "or:bool"
-      }
-    }
-  ],
   "relations": [
     {
       "root": {
