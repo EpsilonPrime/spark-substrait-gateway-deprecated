@@ -368,8 +368,11 @@
                                             }
                                           },
                                           "input": {
-                                            "literal": {
-                                              "i32": 1
+                                            "selection": {
+                                              "directReference": {
+                                                "structField": {}
+                                              },
+                                              "rootReference": {}
                                             }
                                           }
                                         }
@@ -448,8 +451,13 @@
                                                     }
                                                   },
                                                   "input": {
-                                                    "literal": {
-                                                      "i32": 1
+                                                    "selection": {
+                                                      "directReference": {
+                                                        "structField": {
+                                                          "field": 1
+                                                        }
+                                                      },
+                                                      "rootReference": {}
                                                     }
                                                   }
                                                 }
@@ -496,8 +504,13 @@
                                             }
                                           },
                                           "input": {
-                                            "literal": {
-                                              "i32": 1
+                                            "selection": {
+                                              "directReference": {
+                                                "structField": {
+                                                  "field": 2
+                                                }
+                                              },
+                                              "rootReference": {}
                                             }
                                           }
                                         }
