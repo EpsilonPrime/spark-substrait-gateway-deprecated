@@ -1,0 +1,43 @@
+{
+  "extensionUris": [
+    {
+      "extensionUriAnchor": 1,
+      "uri": "/functions_boolean.yaml"
+    }
+  ],
+  "extensions": [
+    {
+      "extensionFunction": {
+        "extensionUriReference": 1,
+        "name": "or:bool"
+      }
+    }
+  ],
+  "relations": [
+    {
+      "root": {
+        "input": {
+          "project": {
+            "expressions": [
+              {
+                "cast": {
+                  "type": {
+                    "fixedChar": {
+                      "length": 25,
+                      "nullability": "NULLABILITY_REQUIRED"
+                    }
+                  },
+                  "input": {
+                    "literal": {
+                      "fixedChar": "DELIVER IN PERSON"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
