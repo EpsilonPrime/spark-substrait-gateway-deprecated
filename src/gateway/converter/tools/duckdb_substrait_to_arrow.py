@@ -6,6 +6,7 @@ from google.protobuf import json_format
 from substrait.gen.proto import plan_pb2
 
 from gateway.converter.label_relations import LabelRelations, UnlabelRelations
+from gateway.converter.output_field_tracking_visitor import OutputFieldTrackingVisitor
 from gateway.converter.simplify_casts import SimplifyCasts
 
 
@@ -23,7 +24,8 @@ def main():
 
     arrow_plan = duckdb_plan
     LabelRelations().visit_plan(arrow_plan)
-    SimplifyCasts().visit_plan(arrow_plan)
+    symbol_table = OutputFieldTrackingVisitor().visit_plan(arrow_plan)
+    SimplifyCasts(symbol_table).visit_plan(arrow_plan)
     UnlabelRelations().visit_plan(arrow_plan)
 
     with open(args[1], "wt", encoding='utf-8') as file:
