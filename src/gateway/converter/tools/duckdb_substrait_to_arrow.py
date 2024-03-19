@@ -11,6 +11,22 @@ from gateway.converter.simplify_casts import SimplifyCasts
 
 
 # pylint: disable=E1101
+def simplify_casts(substrait_plan: plan_pb2.Plan) -> plan_pb2.Plan:
+    """Simplifies the casts in the provided Substrait plan."""
+    modified_plan = plan_pb2.Plan()
+    modified_plan.CopyFrom(substrait_plan)
+    # Add plan ids to every relation.
+    LabelRelations().visit_plan(modified_plan)
+    # Track the output fields.
+    symbol_table = OutputFieldTrackingVisitor().visit_plan(modified_plan)
+    # Replace all casts with projects of casts.
+    SimplifyCasts(symbol_table).visit_plan(modified_plan)
+    # Remove the plan id markers.
+    UnlabelRelations().visit_plan(modified_plan)
+    return modified_plan
+
+
+# pylint: disable=E1101
 def main():
     """Converts the provided plans from the DuckDB Substrait dialect to Acero's."""
     args = sys.argv[1:]
@@ -22,11 +38,7 @@ def main():
         plan_prototext = file.read()
     duckdb_plan = json_format.Parse(plan_prototext, plan_pb2.Plan())
 
-    arrow_plan = duckdb_plan
-    LabelRelations().visit_plan(arrow_plan)  # Add plan ids to every relation.
-    symbol_table = OutputFieldTrackingVisitor().visit_plan(arrow_plan)  # Track the output fields.
-    SimplifyCasts(symbol_table).visit_plan(arrow_plan)  # Replace all casts with projects of casts.
-    UnlabelRelations().visit_plan(arrow_plan)  # Remove the plan id markers.
+    arrow_plan = simplify_casts(duckdb_plan)
 
     with open(args[1], "wt", encoding='utf-8') as file:
         file.write(json_format.MessageToJson(arrow_plan))
