@@ -23,7 +23,7 @@ test_case_names = [os.path.basename(p).removesuffix('.json') for p in test_case_
     ids=test_case_names,
 )
 def test_simplify_casts(request, path):
-    """Test cast simplificaation in a Substrait plan."""
+    """Test cast simplification in a Substrait plan."""
     # Read the Spark plan to convert.
     with open(path, "rb") as file:
         plan_prototext = file.read()
