@@ -25,7 +25,7 @@ class SimplifyCasts(SubstraitPlanVisitor):
         """Visits a cast node."""
         super().visit_cast(cast)
 
-        # TODO -- Also add literal here.
+        # Acero only accepts casts of selections.
         if cast.input.WhichOneof('rex_type') != 'selection':
             self._rewrite_expressions.append(cast.input)
 
