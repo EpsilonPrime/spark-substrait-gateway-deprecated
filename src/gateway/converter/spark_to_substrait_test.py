@@ -13,16 +13,15 @@ from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.converter.sql_to_substrait import SqlConverter
 from gateway.demo.mystream_database import create_mystream_database, delete_mystream_database
 
-test_case_directory = Path(os.path.dirname(os.path.realpath(__file__))) / 'data'
+test_case_directory = Path(__file__).resolve().parent / 'data'
 
-substrait_test_case_paths = [f for f in test_case_directory.iterdir() if f.name.endswith('.spark')]
+substrait_test_case_paths = [f for f in test_case_directory.iterdir() if f.suffix == '.spark']
 
-substrait_test_case_names = [
-    os.path.basename(p).removesuffix('.spark') for p in substrait_test_case_paths]
+substrait_test_case_names = [p.stem for p in substrait_test_case_paths]
 
-sql_test_case_paths = [f for f in test_case_directory.iterdir() if f.name.endswith('.sql')]
+sql_test_case_paths = [f for f in test_case_directory.iterdir() if f.suffix == 'sql']
 
-sql_test_case_names = [os.path.basename(p).removesuffix('.sql') for p in sql_test_case_paths]
+sql_test_case_names = [p.stem for p in sql_test_case_paths]
 
 
 # pylint: disable=E1101
