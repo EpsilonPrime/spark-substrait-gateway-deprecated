@@ -11,6 +11,7 @@ from substrait.gen.proto import plan_pb2
 from gateway.converter.conversion_options import duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.converter.sql_to_substrait import SqlConverter
+from gateway.demo.mystream_database import create_mystream_database, delete_mystream_database
 
 test_case_directory = Path(os.path.dirname(os.path.realpath(__file__))) / 'data'
 
@@ -52,6 +53,14 @@ def test_plan_conversion(request, path):
         return
 
     assert substrait == substrait_plan
+
+
+@pytest.fixture(autouse=True)
+def manage_database() -> None:
+    """Creates the mystream database for use throughout all the tests."""
+    create_mystream_database()
+    yield
+    delete_mystream_database()
 
 
 # pylint: disable=E1101
