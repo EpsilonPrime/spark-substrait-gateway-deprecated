@@ -89,4 +89,6 @@ def test_sql_conversion(request, path):
                 file.write(text_format.MessageToString(substrait))
         return
 
+    assert len(str(substrait)) == len(str(substrait_plan))
+
     assert substrait == substrait_plan
