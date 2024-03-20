@@ -18,6 +18,8 @@ class SqlConverter:
         con.install_extension('substrait')
         con.load_extension('substrait')
 
+        con.execute("CREATE TABLE users AS SELECT * FROM 'users.parquet'")
+
         proto_bytes = con.get_substrait(query=sql).fetchone()[0]
         result.ParseFromString(proto_bytes)
         return result

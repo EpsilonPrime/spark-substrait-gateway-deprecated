@@ -58,21 +58,6 @@ def test_plan_conversion(request, path):
     assert substrait == substrait_plan
 
 
-def _get_users_dataframe():
-    spark_session = (
-        SparkSession
-        .builder
-        .master('local')
-        .config("spark.driver.bindAddress", "127.0.0.1")
-        .appName('gateway')
-        .getOrCreate()
-    )
-    users_dataframe = spark_session.read.format('parquet') \
-        .schema(from_arrow_schema(get_mystream_schema('users'))) \
-        .parquet(str(Path('users.parquet').absolute()))
-    return users_dataframe
-
-
 # pylint: disable=E1101
 @pytest.mark.parametrize(
     'path',
@@ -91,8 +76,6 @@ def test_sql_conversion(request, path):
         splan_prototext = file.read()
     substrait_plan = text_format.Parse(splan_prototext, plan_pb2.Plan())
 
-    users_dataframe = _get_users_dataframe()
-    users_dataframe.createOrReplaceTempView('users')
     substrait = SqlConverter().convert_sql(str(sql))
 
     if request.config.getoption('rebuild_goldens'):
