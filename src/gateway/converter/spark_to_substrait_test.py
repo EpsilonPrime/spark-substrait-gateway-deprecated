@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the Spark to Substrait plan conversion routines."""
-import os
 from pathlib import Path
 
 from google.protobuf import text_format
