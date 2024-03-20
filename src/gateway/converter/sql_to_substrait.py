@@ -6,7 +6,7 @@ import duckdb
 from substrait.gen.proto import plan_pb2
 
 
-# pylint: disable=E1101
+# pylint: disable=E1101,too-few-public-methods
 class SqlConverter:
     """Converts SQL to a Substrait plan."""
 

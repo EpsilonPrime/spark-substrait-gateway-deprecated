@@ -5,23 +5,19 @@ from pathlib import Path
 
 from google.protobuf import text_format
 import pytest
-from pyspark.sql import SparkSession
 from pyspark.sql.connect.proto import base_pb2 as spark_base_pb2
-from pyspark.sql.pandas.types import from_arrow_schema
 from substrait.gen.proto import plan_pb2
 
 from gateway.converter.conversion_options import duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.converter.sql_to_substrait import SqlConverter
-from gateway.demo.mystream_database import get_mystream_schema
-from gateway.tests.conftest import users_location
 
 test_case_directory = Path(os.path.dirname(os.path.realpath(__file__))) / 'data'
 
 substrait_test_case_paths = [f for f in test_case_directory.iterdir() if f.name.endswith('.spark')]
 
-substrait_test_case_names = [os.path.basename(p).removesuffix('.spark') for p in substrait_test_case_paths]
-
+substrait_test_case_names = [
+    os.path.basename(p).removesuffix('.spark') for p in substrait_test_case_paths]
 
 sql_test_case_paths = [f for f in test_case_directory.iterdir() if f.name.endswith('.sql')]
 
