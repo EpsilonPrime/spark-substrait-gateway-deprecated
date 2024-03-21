@@ -51,8 +51,13 @@
                 },
                 "expressions": [
                   {
-                    "literal": {
-                      "fixedChar": "DELIVER IN PERSON"
+                    "selection": {
+                      "directReference": {
+                        "structField": {
+                          "field": 3
+                        }
+                      },
+                      "rootReference": {}
                     }
                   }
                 ]
