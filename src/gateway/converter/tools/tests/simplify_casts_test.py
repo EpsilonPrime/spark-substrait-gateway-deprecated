@@ -2,8 +2,9 @@
 """Tests for the Spark to Substrait plan conversion routines."""
 from pathlib import Path
 
-from google.protobuf import json_format
+from google.protobuf import json_format, text_format
 import pytest
+from hamcrest import assert_that, equal_to
 from substrait.gen.proto import plan_pb2
 
 from gateway.converter.tools.duckdb_substrait_to_arrow import simplify_casts
@@ -41,4 +42,6 @@ def test_simplify_casts(request, path):
                 file.write(json_format.MessageToJson(arrow_plan))
         return
 
-    assert arrow_plan == expected_plan
+    arrow_plan_text = text_format.MessageToString(arrow_plan)
+    expected_plan_text = text_format.MessageToString(expected_plan)
+    assert_that(arrow_plan_text, equal_to(expected_plan_text))

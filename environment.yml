@@ -23,4 +23,5 @@ dependencies:
     - datafusion
     - pyspark
     - pandas >= 1.0.5
+    - pyhamcrest
     - substrait-validator

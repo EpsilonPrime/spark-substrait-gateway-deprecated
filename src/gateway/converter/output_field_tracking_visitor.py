@@ -39,6 +39,7 @@ class OutputFieldTrackingVisitor(SubstraitPlanVisitor):
         current_symbol = self._symbol_table.get_symbol(self._current_plan_id)
         current_symbol.input_fields.extend(source_symbol.output_fields)
         current_symbol.output_fields.extend(current_symbol.input_fields)
+        current_symbol.output_fields.extend(current_symbol.generated_fields)
 
     def visit_read_relation(self, rel: algebra_pb2.ReadRel) -> Any:
         """Uses the field references from the read relation."""
@@ -50,27 +51,35 @@ class OutputFieldTrackingVisitor(SubstraitPlanVisitor):
 
     def visit_filter_relation(self, rel: algebra_pb2.FilterRel) -> Any:
         super().visit_filter_relation(rel)
-        self.update_field_references(get_plan_id_from_common(rel.common))
+        self.update_field_references(get_plan_id(rel.input))
 
     def visit_fetch_relation(self, rel: algebra_pb2.FetchRel) -> Any:
         super().visit_fetch_relation(rel)
-        self.update_field_references(get_plan_id_from_common(rel.common))
+        self.update_field_references(get_plan_id(rel.input))
 
     def visit_aggregate_relation(self, rel: algebra_pb2.AggregateRel) -> Any:
         super().visit_aggregate_relation(rel)
-        self.update_field_references(get_plan_id_from_common(rel.common))
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        for field in rel.grouping_fields:
+            symbol.generated_fields.append('grouping')
+        for measure in rel.measures:
+            symbol.generated_fields.append('measure')
+        self.update_field_references(get_plan_id(rel.input))
 
     def visit_sort_relation(self, rel: algebra_pb2.SortRel) -> Any:
         super().visit_sort_relation(rel)
-        self.update_field_references(get_plan_id_from_common(rel.common))
+        self.update_field_references(get_plan_id(rel.input))
 
     def visit_project_relation(self, rel: algebra_pb2.ProjectRel) -> Any:
         super().visit_project_relation(rel)
-        self.update_field_references(get_plan_id_from_common(rel.common))
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        for expr in rel.expressions:
+            symbol.generated_fields.append('intermediate')
+        self.update_field_references(get_plan_id(rel.input))
 
     def visit_extension_single_relation(self, rel: algebra_pb2.ExtensionSingleRel) -> Any:
         super().visit_extension_single_relation(rel)
-        self.update_field_references(get_plan_id_from_common(rel.common))
+        self.update_field_references(get_plan_id(rel.input))
 
     # TODO -- Add the other relation types.
 

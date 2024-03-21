@@ -89,6 +89,7 @@ class SimplifyCasts(SubstraitPlanVisitor):
 
     def visit_relation(self, rel: algebra_pb2.Rel) -> Any:
         """Visits a relation node."""
+        previous_plan_id = self._current_plan_id
         self._current_plan_id = get_plan_id(rel)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         symbol.cast_expressions_projected = 0
@@ -110,3 +111,5 @@ class SimplifyCasts(SubstraitPlanVisitor):
             # TODO -- Update this relation's output_mapping to not pass on the new exposed fields.
 
         self._rewrite_expressions = self._previous_rewrite_expressions.pop()
+
+        self._current_plan_id = previous_plan_id

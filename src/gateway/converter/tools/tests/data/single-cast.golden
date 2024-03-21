@@ -4,19 +4,12 @@
       "root": {
         "input": {
           "project": {
-            "common": {
-              "emit": {
-                "output_mapping": [
-                  0,
-                  1,
-                  2,
-                  4
-                ]
-              }
-            },
+            "common": {},
             "input": {
               "project": {
-                "common": {},
+                "common": {
+                  "direct": {}
+                },
                 "input": {
                   "read": {
                     "common": {
@@ -58,23 +51,8 @@
                 },
                 "expressions": [
                   {
-                    "cast": {
-                      "type": {
-                        "fixedChar": {
-                          "length": 25,
-                          "nullability": "NULLABILITY_REQUIRED"
-                        }
-                      },
-                      "input": {
-                        "selection": {
-                          "directReference": {
-                            "structField": {
-                              "field": 3
-                            }
-                          },
-                          "rootReference": {}
-                        }
-                      }
+                    "literal": {
+                      "fixedChar": "DELIVER IN PERSON"
                     }
                   }
                 ]
@@ -82,8 +60,23 @@
             },
             "expressions": [
               {
-                "literal": {
-                  "fixedChar": "DELIVER IN PERSON"
+                "cast": {
+                  "type": {
+                    "fixedChar": {
+                      "length": 25,
+                      "nullability": "NULLABILITY_REQUIRED"
+                    }
+                  },
+                  "input": {
+                    "selection": {
+                      "directReference": {
+                        "structField": {
+                          "field": 3
+                        }
+                      },
+                      "rootReference": {}
+                    }
+                  }
                 }
               }
             ]
