@@ -41,10 +41,10 @@ only showing top 1 row
 
     def test_with_column(self, users_dataframe, spark_session):
         expected = spark_session.createDataFrame(
-            data=[('849118289', 'Brooke Jones', False)],
+            data=[('user849118289', 'Brooke Jones', False)],
             schema=['user_id', 'name', 'paid_for_service'])
         outcome = users_dataframe.withColumn(
-            'user_id', length(col('user_id'))).limit(1).collect()
+            'user_id', col('user_id')).limit(1).collect()
         assertDataFrameEqual(outcome, expected)
 
     def test_cast(self, users_dataframe, spark_session):
