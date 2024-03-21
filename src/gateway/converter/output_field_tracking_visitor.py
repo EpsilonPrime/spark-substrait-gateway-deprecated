@@ -60,7 +60,7 @@ class OutputFieldTrackingVisitor(SubstraitPlanVisitor):
     def visit_aggregate_relation(self, rel: algebra_pb2.AggregateRel) -> Any:
         super().visit_aggregate_relation(rel)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        for field in rel.grouping_fields:
+        for field in rel.groupings:
             symbol.generated_fields.append('grouping')
         for measure in rel.measures:
             symbol.generated_fields.append('measure')

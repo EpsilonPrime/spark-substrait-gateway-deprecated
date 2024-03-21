@@ -27,7 +27,9 @@ class SimplifyCasts(SubstraitPlanVisitor):
 
         # Acero only accepts casts of selections.
         if cast.input.WhichOneof('rex_type') != 'selection':
-            self._rewrite_expressions.append(cast.input)
+            old_input = algebra_pb2.Expression()
+            old_input.CopyFrom(cast.input)
+            self._rewrite_expressions.append(old_input)
 
             symbol = self._symbol_table.get_symbol(self._current_plan_id)
             field_reference = len(symbol.input_fields) + symbol.cast_expressions_projected
@@ -107,8 +109,16 @@ class SimplifyCasts(SubstraitPlanVisitor):
                     input=old_input))
             for expr in self._rewrite_expressions:
                 new_input.project.expressions.append(expr)
+
+            # Explicitly set the output mapping to exclude our new expressions.
+            # TODO -- Deal with the case where there was an output mapping already present.
+            for ref in range(0, len(symbol.input_fields)):
+                new_input.project.common.emit.output_mapping.append(ref)
+            for ref in range(0, len(symbol.generated_fields)):
+                new_input.project.common.emit.output_mapping.append(
+                    len(symbol.input_fields) + len(self._rewrite_expressions) + ref)
+
             self.replace_single_input(rel, new_input)
-            # TODO -- Update this relation's output_mapping to not pass on the new exposed fields.
 
         self._rewrite_expressions = self._previous_rewrite_expressions.pop()
 
