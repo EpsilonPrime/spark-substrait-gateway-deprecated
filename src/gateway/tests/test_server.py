@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the Spark to Substrait Gateway server."""
-from pyspark.sql.functions import col, substring
+from pyspark.sql.functions import col, length, substring
 from pyspark.testing import assertDataFrameEqual
 
 
@@ -44,7 +44,7 @@ only showing top 1 row
             data=[('849118289', 'Brooke Jones', False)],
             schema=['user_id', 'name', 'paid_for_service'])
         outcome = users_dataframe.withColumn(
-            'user_id', substring(col('user_id'), 5, 9)).limit(1).collect()
+            'user_id', length(col('user_id'))).limit(1).collect()
         assertDataFrameEqual(outcome, expected)
 
     def test_cast(self, users_dataframe, spark_session):
@@ -53,6 +53,5 @@ only showing top 1 row
             schema=['user_id', 'name', 'paid_for_service'])
         outcome = users_dataframe.withColumn(
             'user_id',
-            substring(col('user_id'), 5, 3).cast('integer')).limit(
-            1).collect()
+            substring(col('user_id'), 5, 3).cast('integer')).limit(1).collect()
         assertDataFrameEqual(outcome, expected)
