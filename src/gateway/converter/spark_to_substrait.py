@@ -549,8 +549,8 @@ class SparkSubstraitConverter:
         # use Pyarrow to convert the bytes into an arrow structure
         with pyarrow.ipc.open_stream(data) as arrow:
             for batch in arrow.iter_batches_with_custom_metadata():
-                values = algebra_pb2.Expression.Literal.Struct()
                 for row_number in range(batch.batch.num_rows):
+                    values = algebra_pb2.Expression.Literal.Struct()
                     for item in batch.batch.columns:
                         values.fields.append(self.convert_arrow_to_literal(item[row_number]))
                     table.values.append(values)
