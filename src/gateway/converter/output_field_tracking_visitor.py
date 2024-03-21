@@ -45,7 +45,7 @@ class OutputFieldTrackingVisitor(SubstraitPlanVisitor):
         """Uses the field references from the read relation."""
         super().visit_read_relation(rel)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        # TODO -- Validate this logic.
+        # TODO -- Validate this logic where complicated data structures are used.
         for field in rel.base_schema.names:
             symbol.output_fields.append(field)
 
