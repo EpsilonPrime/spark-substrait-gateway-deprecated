@@ -524,8 +524,8 @@ class SparkSubstraitConverter:
         self.update_field_references(rel.input.common.plan_id)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         if len(rel.column_names) != len(symbol.input_fields):
-            raise ValueError(f'column_names does not match the number of input fields at '
-                             'plan id {self._current_plan_id}')
+            raise ValueError('column_names does not match the number of input fields at '
+                             f'plan id {self._current_plan_id}')
         symbol.output_fields.clear()
         for field_name in rel.column_names:
             symbol.output_fields.append(field_name)
@@ -533,6 +533,7 @@ class SparkSubstraitConverter:
         return algebra_pb2.Rel(project=project)
 
     def convert_arrow_to_literal(self, val: pyarrow.Scalar) -> algebra_pb2.Expression.Literal:
+        """Converts an Arrow scalar into a Substrait literal."""
         literal = algebra_pb2.Expression.Literal()
         if isinstance(val, pyarrow.BooleanScalar):
             literal.boolean = val.as_py()
