@@ -4,6 +4,7 @@ import json
 import operator
 from typing import Dict, Optional
 
+import pyarrow
 from substrait.gen.proto import plan_pb2
 from substrait.gen.proto import algebra_pb2
 from substrait.gen.proto import type_pb2
@@ -531,15 +532,40 @@ class SparkSubstraitConverter:
         project.common.CopyFrom(self.create_common_relation())
         return algebra_pb2.Rel(project=project)
 
+    def convert_arrow_to_literal(self, val: pyarrow.Scalar) -> algebra_pb2.Expression.Literal:
+        literal = algebra_pb2.Expression.Literal()
+        if isinstance(val, pyarrow.BooleanScalar):
+            literal.boolean = val.as_py()
+        elif isinstance(val, pyarrow.StringScalar):
+            literal.string = val.as_py()
+        else:
+            raise NotImplementedError(
+                f'Conversion from arrow type {val.type} not yet implemented.')
+        return literal
+
+    def convert_arrow_data_to_virtual_table(self, data: bytes) -> algebra_pb2.ReadRel.VirtualTable:
+        """Converts a Spark local relation into a virtual table."""
+        table = algebra_pb2.ReadRel.VirtualTable()
+        # use Pyarrow to convert the bytes into an arrow structure
+        with pyarrow.ipc.open_stream(data) as arrow:
+            for batch in arrow.iter_batches_with_custom_metadata():
+                values = algebra_pb2.Expression.Literal.Struct()
+                for row_number in range(batch.batch.num_rows):
+                    for item in batch.batch.columns:
+                        values.fields.append(self.convert_arrow_to_literal(item[row_number]))
+                    table.values.append(values)
+        return table
+
     def convert_local_relation(self, rel: spark_relations_pb2.LocalRelation) -> algebra_pb2.Rel:
-        """Converts a local relation into a Substrait relation."""
-        local = algebra_pb2.LocalRel()
+        """Converts a Spark local relation into a virtual table."""
+        read = algebra_pb2.ReadRel(virtual_table=self.convert_arrow_data_to_virtual_table(rel.data))
         schema = self.convert_schema(rel.schema)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for field_name in schema.names:
             symbol.output_fields.append(field_name)
-        local.base_schema.CopyFrom(schema)
-        return algebra_pb2.Rel(local=local)
+        read.base_schema.CopyFrom(schema)
+        read.common.CopyFrom(self.create_common_relation())
+        return algebra_pb2.Rel(read=read)
 
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Converts a Spark relation into a Substrait one."""
@@ -565,7 +591,7 @@ class SparkSubstraitConverter:
             case 'to_df':
                 result = self.convert_to_df_relation(rel.to_df)
             case 'local_relation':
-                result = self.convert_local_relation(rel.to_df)
+                result = self.convert_local_relation(rel.local_relation)
             case _:
                 raise ValueError(f'Unexpected Spark plan rel_type: {rel.WhichOneof("rel_type")}')
         self._current_plan_id = old_plan_id
