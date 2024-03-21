@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the Spark to Substrait Gateway server."""
-from pyspark.sql.functions import col, length, substring
+from pyspark.sql.functions import col, substring
 from pyspark.testing import assertDataFrameEqual
 
 
