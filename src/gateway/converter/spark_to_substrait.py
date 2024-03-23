@@ -5,18 +5,19 @@ import operator
 from typing import Dict, Optional
 
 import pyarrow
-from substrait.gen.proto import plan_pb2
-from substrait.gen.proto import algebra_pb2
-from substrait.gen.proto import type_pb2
-from substrait.gen.proto.extensions import extensions_pb2
-
 import pyspark.sql.connect.proto.base_pb2 as spark_pb2
 import pyspark.sql.connect.proto.expressions_pb2 as spark_exprs_pb2
 import pyspark.sql.connect.proto.relations_pb2 as spark_relations_pb2
 import pyspark.sql.connect.proto.types_pb2 as spark_types_pb2
+from substrait.gen.proto import algebra_pb2
+from substrait.gen.proto import plan_pb2
+from substrait.gen.proto import type_pb2
+from substrait.gen.proto.extensions import extensions_pb2
 
 from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
+from gateway.converter.substrait_builder import fetch, field_reference, cast, string_type, \
+    project_relation, strlen, join
 from gateway.converter.symbol_table import SymbolTable, PlanMetadata
 
 
@@ -519,34 +520,21 @@ class SparkSubstraitConverter:
         # Get the input and restrict it to the number of requested rows if necessary.
         input_rel = self.convert_relation(rel.input)
         if rel.num_rows > 0:
-            input_rel = algebra_pb2.Rel(
-                fetch=algebra_pb2.FetchRel(input=input_rel, count=rel.num_rows))
+            input_rel = fetch(input_rel, rel.num_rows)
 
         # Now that we've processed the input, do the bookkeeping.
         self.update_field_references(rel.input.common.plan_id)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
 
         # Find the length of each column in every row.
-        project1_rel = algebra_pb2.Rel(project=algebra_pb2.ProjectRel(input=input_rel))
-        for column_number in range(len(symbol.input_fields)):
-            project1_rel.project.expressions.append(
-                algebra_pb2.Expression(scalar_function=algebra_pb2.Expression.ScalarFunction(
-                    function_reference=strlen_func.anchor,
-                    output_type=strlen_func.output_type,
-                    arguments=[algebra_pb2.FunctionArgument(
-                        value=algebra_pb2.Expression(
-                            cast=algebra_pb2.Expression.Cast(
-                                input=algebra_pb2.Expression(
-                                    selection=algebra_pb2.Expression.FieldReference(
-                                        direct_reference=algebra_pb2.Expression.ReferenceSegment(
-                                            struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
-                                                field=column_number)))),
-                                type=type_pb2.Type(string=type_pb2.Type.String(
-                                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
+        project1 = project_relation(
+            input_rel,
+            [strlen(strlen_func, cast(field_reference(column_number), string_type())) for
+             column_number in range(len(symbol.input_fields))])
 
         # Find the maximum width of each column (for the rows in that we will display).
         aggregate1 = algebra_pb2.Rel(aggregate=algebra_pb2.AggregateRel(
-            input=project1_rel,
+            input=project1,
             common=self.create_common_relation(emit_overrides=range(len(symbol.input_fields))),
             measures=[
                 algebra_pb2.AggregateRel.Measure(
@@ -561,6 +549,7 @@ class SparkSubstraitConverter:
                                             field=column_number)))))])) for column_number in
                 range(len(symbol.input_fields))]))
 
+        """
         project2 = algebra_pb2.Rel(project=algebra_pb2.ProjectRel(input=aggregate1))
         # Construct the header.
         project2.project.expressions.append(
@@ -570,9 +559,6 @@ class SparkSubstraitConverter:
                 arguments=[algebra_pb2.FunctionArgument(
                     value=algebra_pb2.Expression(
 
-
-
-
                         cast=algebra_pb2.Expression.Cast(
                             input=algebra_pb2.Expression(
                                 selection=algebra_pb2.Expression.FieldReference(
@@ -581,6 +567,7 @@ class SparkSubstraitConverter:
                                             field=column_number)))),
                             type=type_pb2.Type(string=type_pb2.Type.String(
                                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
+
         # Construct the footer.
         for column_number in range(len(symbol.input_fields)):
             project2.project.expressions.append(
@@ -597,9 +584,9 @@ class SparkSubstraitConverter:
                                                 field=column_number)))),
                                 type=type_pb2.Type(string=type_pb2.Type.String(
                                     nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
+        """
 
-        join1 = algebra_pb2.Rel(join=algebra_pb2.JoinRel(left=fetch1, right1=aggregate1))
-        join1.common.CopyFrom(self.create_common_relation())
+        join1 = join(input_rel, aggregate1)
 
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         # TODO -- Pull the columns from symbol.input_fields.
