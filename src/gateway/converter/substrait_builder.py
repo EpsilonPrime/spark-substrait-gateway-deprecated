@@ -24,21 +24,18 @@ def project_relation(input_relation: algebra_pb2.Rel,
 
 
 # pylint: disable=fixme
-def aggregate_relation(input_relation: algebra_pb2.Rel, groupings: List[algebra_pb2.Expression],
+def aggregate_relation(input_relation: algebra_pb2.Rel,
                        measures: List[algebra_pb2.AggregateFunction]) -> algebra_pb2.Rel:
     """Constructs a Substrait aggregate plan node."""
     aggregate = algebra_pb2.Rel(
         aggregate=algebra_pb2.AggregateRel(
             common=algebra_pb2.RelCommon(emit=algebra_pb2.RelCommon.Emit(
-                output_mapping=[range(len(groupings) + len(measures))])),
+                output_mapping=range(len(measures)))),
             input=input_relation))
-    # TODO -- Support groupings with more than one expression in them.
-    for group in groupings:
-        aggregate.aggregate.groupings.append(
-            algebra_pb2.AggregateRel.Grouping(grouping_expressions=[group]))
+    # TODO -- Add support for groupings.
     for measure in measures:
         aggregate.aggregate.measures.append(
-            algebra_pb2.AggregateRel.MeasureFunction(measure=measure))
+            algebra_pb2.AggregateRel.Measure(measure=measure))
     return aggregate
 
 
@@ -86,6 +83,15 @@ def field_reference(field_number: int) -> algebra_pb2.Expression:
             direct_reference=algebra_pb2.Expression.ReferenceSegment(
                 struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
                     field=field_number))))
+
+
+def max(function_info: ExtensionFunction,
+        field_number: int) -> algebra_pb2.AggregateFunction:
+    """Constructs a Substrait concat expression."""
+    return algebra_pb2.Expression.AggregateFunction(
+        function_reference=function_info.anchor,
+        output_type=function_info.output_type,
+        arguments=[algebra_pb2.FunctionArgument(value=field_reference(field_number))])
 
 
 def string_type(required: bool = True) -> type_pb2.Type:

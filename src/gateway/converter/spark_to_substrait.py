@@ -17,7 +17,7 @@ from substrait.gen.proto.extensions import extensions_pb2
 from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 from gateway.converter.substrait_builder import field_reference, cast, string_type, \
-    project_relation, strlen, concat, fetch_relation, join_relation
+    project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation
 from gateway.converter.symbol_table import SymbolTable, PlanMetadata
 
 
@@ -533,21 +533,15 @@ class SparkSubstraitConverter:
              column_number in range(len(symbol.input_fields))])
 
         # Find the maximum width of each column (for the rows in that we will display).
-        aggregate1 = algebra_pb2.Rel(aggregate=algebra_pb2.AggregateRel(
-            input=project1,
-            common=self.create_common_relation(emit_overrides=range(len(symbol.input_fields))),
+        aggregate1 = aggregate_relation(
+            project1,
             measures=[
-                algebra_pb2.AggregateRel.Measure(
-                    measure=algebra_pb2.AggregateFunction(
-                        function_reference=max_func.anchor,
-                        output_type=max_func.output_type,
-                        arguments=[algebra_pb2.FunctionArgument(
-                            value=algebra_pb2.Expression(
-                                selection=algebra_pb2.Expression.FieldReference(
-                                    direct_reference=algebra_pb2.Expression.ReferenceSegment(
-                                        struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
-                                            field=column_number)))))])) for column_number in
-                range(len(symbol.input_fields))]))
+                algebra_pb2.AggregateFunction(
+                    function_reference=max_func.anchor,
+                    output_type=max_func.output_type,
+                    arguments=[algebra_pb2.FunctionArgument(
+                        value=field_reference(column_number))])
+                for column_number in range(len(symbol.input_fields))])
 
         project2 = project_relation(aggregate1, [
             concat(concat_func,
