@@ -49,7 +49,7 @@ def join_relation(left: algebra_pb2.Rel, right: algebra_pb2.Rel) -> algebra_pb2.
 
 
 def concat(function_info: ExtensionFunction,
-           *expressions: algebra_pb2.Expression) -> algebra_pb2.Expression:
+           expressions: List[algebra_pb2.Expression]) -> algebra_pb2.Expression:
     """Constructs a Substrait concat expression."""
     return algebra_pb2.Expression(
         scalar_function=algebra_pb2.Expression.ScalarFunction(

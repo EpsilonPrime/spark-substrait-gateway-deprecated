@@ -542,12 +542,14 @@ class SparkSubstraitConverter:
 
         project2 = project_relation(aggregate1, [
             concat(concat_func,
-                   cast(field_reference(0), string_type()),
-                   string_literal('  '),
-                   cast(field_reference(1), string_type()),
-                   string_literal('  '),
-                   cast(field_reference(2), string_type()),
-                   )
+                   [string_literal(field_name) for field_name in symbol.input_fields] + [
+                       string_literal('  '),
+                       cast(field_reference(0), string_type()),
+                       string_literal('  '),
+                       cast(field_reference(1), string_type()),
+                       string_literal('  '),
+                       cast(field_reference(2), string_type()),
+                   ])
         ])
 
         """
