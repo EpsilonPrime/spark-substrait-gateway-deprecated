@@ -60,6 +60,10 @@ SPARK_SUBSTRAIT_MAPPING = {
         '/functions_string.yaml', 'char_length:str', type_pb2.Type(
             i64=type_pb2.Type.I64(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
+    'max': ExtensionFunction(
+        '/functions_aggregate.yaml', 'max:i64', type_pb2.Type(
+            i64=type_pb2.Type.I64(
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
     'count': ExtensionFunction(
         '/functions_aggregate_generic.yaml', 'count:any', type_pb2.Type(
             i64=type_pb2.Type.I64(
