@@ -18,7 +18,7 @@ from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 from gateway.converter.substrait_builder import field_reference, cast, string_type, \
     project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation, \
-    max_function
+    max_function, string_literal
 from gateway.converter.symbol_table import SymbolTable, PlanMetadata
 
 
@@ -543,9 +543,9 @@ class SparkSubstraitConverter:
         project2 = project_relation(aggregate1, [
             concat(concat_func,
                    cast(field_reference(0), string_type()),
-                   algebra_pb2.Expression(literal=self.convert_string_literal('  ')),
+                   string_literal('  '),
                    cast(field_reference(1), string_type()),
-                   algebra_pb2.Expression(literal=self.convert_string_literal('  ')),
+                   string_literal('  '),
                    cast(field_reference(2), string_type()),
                    )
         ])

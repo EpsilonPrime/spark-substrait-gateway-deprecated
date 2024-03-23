@@ -86,12 +86,17 @@ def field_reference(field_number: int) -> algebra_pb2.Expression:
 
 
 def max_function(function_info: ExtensionFunction,
-        field_number: int) -> algebra_pb2.AggregateFunction:
+                 field_number: int) -> algebra_pb2.AggregateFunction:
     """Constructs a Substrait concat expression."""
     return algebra_pb2.AggregateFunction(
         function_reference=function_info.anchor,
         output_type=function_info.output_type,
         arguments=[algebra_pb2.FunctionArgument(value=field_reference(field_number))])
+
+
+def string_literal(val: str) -> algebra_pb2.Expression:
+    """Constructs a Substrait string literal expression."""
+    return algebra_pb2.Expression(literal=algebra_pb2.Expression.Literal(string=val))
 
 
 def string_type(required: bool = True) -> type_pb2.Type:
