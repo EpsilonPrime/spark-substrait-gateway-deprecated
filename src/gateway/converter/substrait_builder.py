@@ -85,10 +85,10 @@ def field_reference(field_number: int) -> algebra_pb2.Expression:
                     field=field_number))))
 
 
-def max(function_info: ExtensionFunction,
+def max_function(function_info: ExtensionFunction,
         field_number: int) -> algebra_pb2.AggregateFunction:
     """Constructs a Substrait concat expression."""
-    return algebra_pb2.Expression.AggregateFunction(
+    return algebra_pb2.AggregateFunction(
         function_reference=function_info.anchor,
         output_type=function_info.output_type,
         arguments=[algebra_pb2.FunctionArgument(value=field_reference(field_number))])

@@ -17,7 +17,8 @@ from substrait.gen.proto.extensions import extensions_pb2
 from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 from gateway.converter.substrait_builder import field_reference, cast, string_type, \
-    project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation
+    project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation, \
+    max_function
 from gateway.converter.symbol_table import SymbolTable, PlanMetadata
 
 
@@ -536,11 +537,7 @@ class SparkSubstraitConverter:
         aggregate1 = aggregate_relation(
             project1,
             measures=[
-                algebra_pb2.AggregateFunction(
-                    function_reference=max_func.anchor,
-                    output_type=max_func.output_type,
-                    arguments=[algebra_pb2.FunctionArgument(
-                        value=field_reference(column_number))])
+                max_function(max_func, column_number)
                 for column_number in range(len(symbol.input_fields))])
 
         project2 = project_relation(aggregate1, [
