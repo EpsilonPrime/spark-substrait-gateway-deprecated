@@ -16,8 +16,8 @@ from substrait.gen.proto.extensions import extensions_pb2
 
 from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
-from gateway.converter.substrait_builder import fetch, field_reference, cast, string_type, \
-    project_relation, strlen, join
+from gateway.converter.substrait_builder import field_reference, cast, string_type, \
+    project_relation, strlen, concat, fetch_relation, join_relation
 from gateway.converter.symbol_table import SymbolTable, PlanMetadata
 
 
@@ -520,7 +520,7 @@ class SparkSubstraitConverter:
         # Get the input and restrict it to the number of requested rows if necessary.
         input_rel = self.convert_relation(rel.input)
         if rel.num_rows > 0:
-            input_rel = fetch(input_rel, rel.num_rows)
+            input_rel = fetch_relation(input_rel, rel.num_rows)
 
         # Now that we've processed the input, do the bookkeeping.
         self.update_field_references(rel.input.common.plan_id)
@@ -548,6 +548,16 @@ class SparkSubstraitConverter:
                                         struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
                                             field=column_number)))))])) for column_number in
                 range(len(symbol.input_fields))]))
+
+        project2 = project_relation(aggregate1, [
+            concat(concat_func,
+                   cast(field_reference(0), string_type()),
+                   algebra_pb2.Expression(literal=self.convert_string_literal('  ')),
+                   cast(field_reference(1), string_type()),
+                   algebra_pb2.Expression(literal=self.convert_string_literal('  ')),
+                   cast(field_reference(2), string_type()),
+                   )
+        ])
 
         """
         project2 = algebra_pb2.Rel(project=algebra_pb2.ProjectRel(input=aggregate1))
@@ -586,7 +596,7 @@ class SparkSubstraitConverter:
                                     nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
         """
 
-        join1 = join(input_rel, aggregate1)
+        join1 = join_relation(input_rel, aggregate1)
 
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         # TODO -- Pull the columns from symbol.input_fields.
@@ -595,13 +605,13 @@ class SparkSubstraitConverter:
         symbol.output_fields.clear()
         symbol.output_fields.append('show_string')
 
-        project = algebra_pb2.ProjectRel(input=join1)
-        project.expressions.append(
+        project4 = algebra_pb2.ProjectRel(input=join1)
+        project4.expressions.append(
             algebra_pb2.Expression(literal=self.convert_string_literal(
                 self.construct_header_string(rel.truncate, symbol))))
-        project.common.CopyFrom(self.create_common_relation())
-        project.common.emit.output_mapping.append(len(symbol.input_fields))
-        return algebra_pb2.Rel(project=project)
+        project4.common.CopyFrom(self.create_common_relation())
+        project4.common.emit.output_mapping.append(len(symbol.input_fields))
+        return project2
 
     def convert_with_columns_relation(
             self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:

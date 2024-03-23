@@ -7,7 +7,9 @@ from substrait.gen.proto import algebra_pb2, type_pb2
 from gateway.converter.spark_functions import ExtensionFunction
 
 
-def fetch(input_relation: algebra_pb2.Rel, num_rows: int) -> algebra_pb2.Rel:
+# pylint: disable=E1101
+
+def fetch_relation(input_relation: algebra_pb2.Rel, num_rows: int) -> algebra_pb2.Rel:
     """Constructs a Substrait fetch plan node."""
     fetch = algebra_pb2.Rel(fetch=algebra_pb2.FetchRel(input=input_relation, count=num_rows))
 
@@ -22,8 +24,8 @@ def project_relation(input_relation: algebra_pb2.Rel,
 
 
 # pylint: disable=fixme
-def aggregate(input_relation: algebra_pb2.Rel, groupings: List[algebra_pb2.Expression],
-              measures: List[algebra_pb2.AggregateFunction]) -> algebra_pb2.Rel:
+def aggregate_relation(input_relation: algebra_pb2.Rel, groupings: List[algebra_pb2.Expression],
+                       measures: List[algebra_pb2.AggregateFunction]) -> algebra_pb2.Rel:
     """Constructs a Substrait aggregate plan node."""
     aggregate = algebra_pb2.Rel(
         aggregate=algebra_pb2.AggregateRel(
@@ -40,7 +42,7 @@ def aggregate(input_relation: algebra_pb2.Rel, groupings: List[algebra_pb2.Expre
     return aggregate
 
 
-def join(left: algebra_pb2.Rel, right: algebra_pb2.Rel) -> algebra_pb2.Rel:
+def join_relation(left: algebra_pb2.Rel, right: algebra_pb2.Rel) -> algebra_pb2.Rel:
     """Constructs a Substrait join plan node."""
     return algebra_pb2.Rel(
         join=algebra_pb2.JoinRel(common=algebra_pb2.RelCommon(), left=left, right=right,
@@ -86,9 +88,10 @@ def field_reference(field_number: int) -> algebra_pb2.Expression:
                     field=field_number))))
 
 
-def string_type(
-        required: type_pb2.Type.Nullability = type_pb2.Type.Nullability.NULLABILITY_REQUIRED) -> type_pb2.Type:
+def string_type(required: bool = True) -> type_pb2.Type:
     """Constructs a Substrait string type."""
-    return type_pb2.Type(
-        string=type_pb2.Type.String(
-            nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))
+    if required:
+        nullability = type_pb2.Type.Nullability.NULLABILITY_REQUIRED
+    else:
+        nullability = type_pb2.Type.Nullability.NULLABILITY_NULLABLE
+    return type_pb2.Type(string=type_pb2.Type.String(nullability=nullability))
