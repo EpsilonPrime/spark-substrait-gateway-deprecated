@@ -488,15 +488,15 @@ class SparkSubstraitConverter:
             raise NotImplementedError(
                 'show_string values of truncate of less than 2 not yet implemented')
 
-        """ 
+        """
         The subplan implementing the show_string relation has this flow:
-        
+
         Input -> Fetch1 -> Project1 -> Aggregate1 -> Project2
         Fetch1 + Aggregate1 -> Join1
         Join1 -> Project3 -> Aggregate2
         Project2 + Aggregate2 -> Join2
         Join2 -> Project4
-        
+
         Input - The plan to run the show_string on.
         Fetch1 - Restricts the input to the number of rows (if needed).
         Project1 - Finds the length of each column of the remaining rows.
@@ -512,6 +512,9 @@ class SparkSubstraitConverter:
         # Find the functions we'll need.
         strlen_func = self.lookup_function_by_name('length')
         max_func = self.lookup_function_by_name('max')
+        concat_func = self.lookup_function_by_name('concat')
+        repeat_func = self.lookup_function_by_name('repeat')
+        rpad_func = self.lookup_function_by_name('rpad')
 
         # Get the input and restrict it to the number of requested rows if necessary.
         input_rel = self.convert_relation(rel.input)
@@ -558,6 +561,46 @@ class SparkSubstraitConverter:
                                             field=column_number)))))])) for column_number in
                 range(len(symbol.input_fields))]))
 
+        project2 = algebra_pb2.Rel(project=algebra_pb2.ProjectRel(input=aggregate1))
+        # Construct the header.
+        project2.project.expressions.append(
+            algebra_pb2.Expression(scalar_function=algebra_pb2.Expression.ScalarFunction(
+                function_reference=concat_func.anchor,
+                output_type=concat_func.output_type,
+                arguments=[algebra_pb2.FunctionArgument(
+                    value=algebra_pb2.Expression(
+
+
+
+
+                        cast=algebra_pb2.Expression.Cast(
+                            input=algebra_pb2.Expression(
+                                selection=algebra_pb2.Expression.FieldReference(
+                                    direct_reference=algebra_pb2.Expression.ReferenceSegment(
+                                        struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
+                                            field=column_number)))),
+                            type=type_pb2.Type(string=type_pb2.Type.String(
+                                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
+        # Construct the footer.
+        for column_number in range(len(symbol.input_fields)):
+            project2.project.expressions.append(
+                algebra_pb2.Expression(scalar_function=algebra_pb2.Expression.ScalarFunction(
+                    function_reference=strlen_func.anchor,
+                    output_type=strlen_func.output_type,
+                    arguments=[algebra_pb2.FunctionArgument(
+                        value=algebra_pb2.Expression(
+                            cast=algebra_pb2.Expression.Cast(
+                                input=algebra_pb2.Expression(
+                                    selection=algebra_pb2.Expression.FieldReference(
+                                        direct_reference=algebra_pb2.Expression.ReferenceSegment(
+                                            struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
+                                                field=column_number)))),
+                                type=type_pb2.Type(string=type_pb2.Type.String(
+                                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
+
+        join1 = algebra_pb2.Rel(join=algebra_pb2.JoinRel(left=fetch1, right1=aggregate1))
+        join1.common.CopyFrom(self.create_common_relation())
+
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         # TODO -- Pull the columns from symbol.input_fields.
         # TODO -- Use string_agg to aggregate all of the column input into a single string.
@@ -565,7 +608,7 @@ class SparkSubstraitConverter:
         symbol.output_fields.clear()
         symbol.output_fields.append('show_string')
 
-        project = algebra_pb2.ProjectRel(input=aggregate1)
+        project = algebra_pb2.ProjectRel(input=join1)
         project.expressions.append(
             algebra_pb2.Expression(literal=self.convert_string_literal(
                 self.construct_header_string(rel.truncate, symbol))))

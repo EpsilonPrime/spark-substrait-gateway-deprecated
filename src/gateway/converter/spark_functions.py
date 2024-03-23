@@ -64,6 +64,18 @@ SPARK_SUBSTRAIT_MAPPING = {
         '/functions_aggregate.yaml', 'max:i64', type_pb2.Type(
             i64=type_pb2.Type.I64(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
+    'concat': ExtensionFunction(
+        '/functions_string.yaml', 'concat:str_str', type_pb2.Type(
+            string=type_pb2.Type.String(
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
+    'repeat': ExtensionFunction(
+        '/functions_string.yaml', 'repeat:str_i64', type_pb2.Type(
+            string=type_pb2.Type.String(
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
+    'rpad': ExtensionFunction(
+        '/functions_string.yaml', 'rpad:str_i64_str', type_pb2.Type(
+            string=type_pb2.Type.String(
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
     'count': ExtensionFunction(
         '/functions_aggregate_generic.yaml', 'count:any', type_pb2.Type(
             i64=type_pb2.Type.I64(
