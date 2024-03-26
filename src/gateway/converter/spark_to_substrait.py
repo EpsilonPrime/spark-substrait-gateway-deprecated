@@ -481,23 +481,23 @@ class SparkSubstraitConverter:
         """
         The subplan implementing the show_string relation has this flow:
 
-        Input -> Fetch1 -> Project1 -> Aggregate1 -> Project2
+        Input -> Fetch1 -> Project1 -> Aggregate1 -> Project2 -> Project3
         Fetch1 + Aggregate1 -> Join1
-        Join1 -> Project3 -> Aggregate2
-        Project2 + Aggregate2 -> Join2
-        Join2 -> Project4
+        Join1 -> Project4 -> Aggregate2
+        Project3 + Aggregate2 -> Join2
+        Join2 -> Project5
 
         Input - The plan to run the show_string on.
         Fetch1 - Restricts the input to the number of rows (if needed).
         Project1 - Finds the length of each column of the remaining rows.
         Aggregate1 - Finds the maximum length of each column.
-        Project1b
-        Project2 - Constructs the header and the footer based on the lines.
+        Project2 - Uses the best of truncate, column name length, and max length.
+        Project3 - Constructs the header and the footer based on the lines.
         Join1 - Combines the original rows with the maximum lengths.
-        Project3 - Combines all of the columns for each row into a single string.
+        Project4 - Combines all of the columns for each row into a single string.
         Aggregate2 - Combines all the strings into the body of the result.
         Join2 - Combines the header and footer along with the body of the result.
-        Project4 - Organizes the header, footer, and body in the right order.
+        Project5 - Organizes the header, footer, and body in the right order.
         """
 
         # Find the functions we'll need.
@@ -535,7 +535,7 @@ class SparkSubstraitConverter:
                 for column_number in range(len(symbol.input_fields))])
 
         # Find the maximum we will use based on the truncate, max size, and column name length.
-        project1b = project_relation(
+        project2 = project_relation(
             aggregate1,
             [greatest_function(greatest_func,
                                least_function(least_func, field_reference(column_number),
@@ -594,7 +594,7 @@ class SparkSubstraitConverter:
                            ])]
 
         # Construct the header and footer lines.
-        project2 = project_relation(project1b, [
+        project3 = project_relation(project2, [
             concat(concat_func,
                    full_line(symbol.input_fields) +
                    header_line(symbol.input_fields) +
@@ -602,10 +602,10 @@ class SparkSubstraitConverter:
                                     full_line(symbol.input_fields))
 
         # Combine the original rows with the maximum lengths we are using.
-        join1 = join_relation(input_rel, project1b)
+        join1 = join_relation(input_rel, project2)
 
         # Construct the body of the result row by row.
-        project3 = project_relation(join1, [
+        project4 = project_relation(join1, [
             concat(concat_func,
                    flatten([field_body_fragment(field_number) for field_number in
                             range(len(symbol.input_fields))
@@ -616,26 +616,26 @@ class SparkSubstraitConverter:
         ])
 
         # Merge all of the rows of the result body into a single string.
-        aggregate2 = aggregate_relation(project3, measures=[
+        aggregate2 = aggregate_relation(project4, measures=[
             string_concat_agg_function(string_concat_func, 0)])
 
         # Create one row with the header, the body, and the footer in it.
-        join2 = join_relation(project2, aggregate2)
+        join2 = join_relation(project3, aggregate2)
 
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         symbol.output_fields.clear()
         symbol.output_fields.append('show_string')
 
         # Combine the header, body, and footer into the final result.
-        project4 = project_relation(join2, [
+        project5 = project_relation(join2, [
             concat(concat_func, [
                 field_reference(0),
                 field_reference(2),
                 field_reference(1),
             ]),
         ])
-        project4.project.common.emit.output_mapping.append(len(symbol.input_fields))
-        return project4
+        project5.project.common.emit.output_mapping.append(len(symbol.input_fields))
+        return project5
 
     def convert_with_columns_relation(
             self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
