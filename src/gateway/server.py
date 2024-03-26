@@ -68,6 +68,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         results = backend.execute(substrait, self._options.backend)
         _LOGGER.debug('  results are: %s', results)
 
+        # TODO -- Important:  Include the schema in the returned results.
         if not self._options.implement_show_string and request.plan.root.WhichOneof(
                 'rel_type') == 'show_string':
             yield pb2.ExecutePlanResponse(

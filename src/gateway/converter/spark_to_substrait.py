@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Routines to convert SparkConnect plans to Substrait plans."""
+import itertools
 import json
 import operator
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 import pyarrow
 import pyspark.sql.connect.proto.base_pb2 as spark_pb2
@@ -16,9 +17,10 @@ from substrait.gen.proto.extensions import extensions_pb2
 
 from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
-from gateway.converter.substrait_builder import field_reference, cast, string_type, \
+from gateway.converter.substrait_builder import field_reference, cast_operation, string_type, \
     project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation, \
-    max_function, string_literal
+    max_agg_function, string_literal, flatten, repeat_function, rpad_function, \
+    least_function, greatest_function, bigint_literal, lpad_function, string_concat_agg_function
 from gateway.converter.symbol_table import SymbolTable, PlanMetadata
 
 
@@ -503,6 +505,7 @@ class SparkSubstraitConverter:
         Fetch1 - Restricts the input to the number of rows (if needed).
         Project1 - Finds the length of each column of the remaining rows.
         Aggregate1 - Finds the maximum length of each column.
+        Project1b
         Project2 - Constructs the header and the footer based on the lines.
         Join1 - Combines the original rows with the maximum lengths.
         Project3 - Combines all of the columns for each row into a single string.
@@ -514,9 +517,12 @@ class SparkSubstraitConverter:
         # Find the functions we'll need.
         strlen_func = self.lookup_function_by_name('length')
         max_func = self.lookup_function_by_name('max')
+        string_concat_func = self.lookup_function_by_name('string_agg')
         concat_func = self.lookup_function_by_name('concat')
         repeat_func = self.lookup_function_by_name('repeat')
-        rpad_func = self.lookup_function_by_name('rpad')
+        lpad_func = self.lookup_function_by_name('lpad')
+        least_func = self.lookup_function_by_name('least')
+        greatest_func = self.lookup_function_by_name('greatest')
 
         # Get the input and restrict it to the number of requested rows if necessary.
         input_rel = self.convert_relation(rel.input)
@@ -530,81 +536,97 @@ class SparkSubstraitConverter:
         # Find the length of each column in every row.
         project1 = project_relation(
             input_rel,
-            [strlen(strlen_func, cast(field_reference(column_number), string_type())) for
+            [strlen(strlen_func, cast_operation(field_reference(column_number), string_type())) for
              column_number in range(len(symbol.input_fields))])
 
         # Find the maximum width of each column (for the rows in that we will display).
         aggregate1 = aggregate_relation(
             project1,
             measures=[
-                max_function(max_func, column_number)
+                max_agg_function(max_func, column_number)
                 for column_number in range(len(symbol.input_fields))])
 
-        project2 = project_relation(aggregate1, [
+        project1b = project_relation(
+            aggregate1,
+            [greatest_function(greatest_func,
+                               least_function(least_func, field_reference(column_number),
+                                              bigint_literal(rel.truncate)),
+                               strlen(strlen_func,
+                                      string_literal(symbol.input_fields[column_number]))) for
+             column_number in range(len(symbol.input_fields))])
+
+        def field_header_fragment(field_number: int) -> List[algebra_pb2.Expression]:
+            return [string_literal('|'),
+                    lpad_function(lpad_func, string_literal(symbol.input_fields[field_number]),
+                                  field_reference(field_number))]
+
+        def field_line_fragment(field_number: int) -> List[algebra_pb2.Expression]:
+            return [string_literal('+'),
+                    repeat_function(repeat_func, '-', field_reference(field_number))]
+
+        def field_body_fragment(field_number: int) -> List[algebra_pb2.Expression]:
+            return [string_literal('|'),
+                    lpad_function(lpad_func, field_reference(field_number),
+                                  field_reference(field_number + len(symbol.input_fields)))]
+
+        def header_line(fields: List[str]) -> List[algebra_pb2.Expression]:
+            return [concat(concat_func,
+                           flatten([
+                               field_header_fragment(field_number) for field_number in
+                               range(len(fields))
+                           ]) + [
+                               string_literal('|\n'),
+                           ])]
+
+        def full_line(fields: List[str]) -> List[algebra_pb2.Expression]:
+            return [concat(concat_func,
+                           flatten([
+                               field_line_fragment(field_number) for field_number in
+                               range(len(fields))
+                           ]) + [
+                               string_literal('+\n'),
+                           ])]
+
+        # Construct the header and footer lines.
+        project2 = project_relation(project1b, [
             concat(concat_func,
-                   [string_literal(field_name) for field_name in symbol.input_fields] + [
-                       string_literal('  '),
-                       cast(field_reference(0), string_type()),
-                       string_literal('  '),
-                       cast(field_reference(1), string_type()),
-                       string_literal('  '),
-                       cast(field_reference(2), string_type()),
-                   ])
+                   full_line(symbol.input_fields) +
+                   header_line(symbol.input_fields) +
+                   full_line(symbol.input_fields))] +
+                                    full_line(symbol.input_fields))
+
+        # Combine the original rows with the maximum lengths we are using.
+        join1 = join_relation(input_rel, project1b)
+
+        # Construct the body of the result row by row.
+        project3 = project_relation(join1, [
+            concat(concat_func,
+                   flatten([field_body_fragment(field_number) for field_number in
+                            range(len(symbol.input_fields))
+                            ]) + [
+                       string_literal('|\n'),
+                   ]
+                   ),
         ])
 
-        """
-        project2 = algebra_pb2.Rel(project=algebra_pb2.ProjectRel(input=aggregate1))
-        # Construct the header.
-        project2.project.expressions.append(
-            algebra_pb2.Expression(scalar_function=algebra_pb2.Expression.ScalarFunction(
-                function_reference=concat_func.anchor,
-                output_type=concat_func.output_type,
-                arguments=[algebra_pb2.FunctionArgument(
-                    value=algebra_pb2.Expression(
+        aggregate2 = aggregate_relation(project3, measures=[
+            string_concat_agg_function(string_concat_func, 0)])
 
-                        cast=algebra_pb2.Expression.Cast(
-                            input=algebra_pb2.Expression(
-                                selection=algebra_pb2.Expression.FieldReference(
-                                    direct_reference=algebra_pb2.Expression.ReferenceSegment(
-                                        struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
-                                            field=column_number)))),
-                            type=type_pb2.Type(string=type_pb2.Type.String(
-                                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
-
-        # Construct the footer.
-        for column_number in range(len(symbol.input_fields)):
-            project2.project.expressions.append(
-                algebra_pb2.Expression(scalar_function=algebra_pb2.Expression.ScalarFunction(
-                    function_reference=strlen_func.anchor,
-                    output_type=strlen_func.output_type,
-                    arguments=[algebra_pb2.FunctionArgument(
-                        value=algebra_pb2.Expression(
-                            cast=algebra_pb2.Expression.Cast(
-                                input=algebra_pb2.Expression(
-                                    selection=algebra_pb2.Expression.FieldReference(
-                                        direct_reference=algebra_pb2.Expression.ReferenceSegment(
-                                            struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
-                                                field=column_number)))),
-                                type=type_pb2.Type(string=type_pb2.Type.String(
-                                    nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED)))))])))
-        """
-
-        join1 = join_relation(input_rel, aggregate1)
+        join2 = join_relation(project2, aggregate2)
 
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        # TODO -- Pull the columns from symbol.input_fields.
-        # TODO -- Use string_agg to aggregate all of the column input into a single string.
-        # TODO -- Use a project to output a single field with the table info in it.
         symbol.output_fields.clear()
         symbol.output_fields.append('show_string')
 
-        project4 = algebra_pb2.ProjectRel(input=join1)
-        project4.expressions.append(
-            algebra_pb2.Expression(literal=self.convert_string_literal(
-                self.construct_header_string(rel.truncate, symbol))))
-        project4.common.CopyFrom(self.create_common_relation())
-        project4.common.emit.output_mapping.append(len(symbol.input_fields))
-        return project2
+        project4 = project_relation(join2, [
+            concat(concat_func, [
+                field_reference(0),
+                field_reference(2),
+                field_reference(1),
+            ]),
+        ])
+        project4.project.common.emit.output_mapping.append(len(symbol.input_fields))
+        return project4
 
     def convert_with_columns_relation(
             self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
