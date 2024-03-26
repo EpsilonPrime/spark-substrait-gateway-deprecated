@@ -114,12 +114,14 @@ def max_agg_function(function_info: ExtensionFunction,
 
 
 def string_concat_agg_function(function_info: ExtensionFunction,
-                               field_number: int) -> algebra_pb2.AggregateFunction:
+                               field_number: int,
+                               separator: str = '') -> algebra_pb2.AggregateFunction:
     """Constructs a Substrait string concat aggregate function."""
     return algebra_pb2.AggregateFunction(
         function_reference=function_info.anchor,
         output_type=function_info.output_type,
-        arguments=[algebra_pb2.FunctionArgument(value=field_reference(field_number))])
+        arguments=[algebra_pb2.FunctionArgument(value=field_reference(field_number)),
+                   algebra_pb2.FunctionArgument(value=string_literal(separator))])
 
 
 def least_function(function_info: ExtensionFunction,
@@ -149,6 +151,18 @@ def greatest_function(function_info: ExtensionFunction,
 def greater_or_equal_function(function_info: ExtensionFunction,
                               expr1: algebra_pb2.Expression,
                               expr2: algebra_pb2.Expression) -> algebra_pb2.Expression:
+    """Constructs a Substrait min expression."""
+    return algebra_pb2.Expression(scalar_function=
+    algebra_pb2.Expression.ScalarFunction(
+        function_reference=function_info.anchor,
+        output_type=function_info.output_type,
+        arguments=[algebra_pb2.FunctionArgument(value=expr1),
+                   algebra_pb2.FunctionArgument(value=expr2)]))
+
+
+def greater_function(function_info: ExtensionFunction,
+                     expr1: algebra_pb2.Expression,
+                     expr2: algebra_pb2.Expression) -> algebra_pb2.Expression:
     """Constructs a Substrait min expression."""
     return algebra_pb2.Expression(scalar_function=
     algebra_pb2.Expression.ScalarFunction(

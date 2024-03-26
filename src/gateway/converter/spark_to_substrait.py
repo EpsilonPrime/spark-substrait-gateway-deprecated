@@ -20,7 +20,7 @@ from gateway.converter.substrait_builder import field_reference, cast_operation,
     project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation, \
     max_agg_function, string_literal, flatten, repeat_function, \
     least_function, greatest_function, bigint_literal, lpad_function, string_concat_agg_function, \
-    if_then_else_operation, greater_or_equal_function, minus_function
+    if_then_else_operation, greater_function, minus_function
 from gateway.converter.symbol_table import SymbolTable
 
 
@@ -509,7 +509,7 @@ class SparkSubstraitConverter:
         lpad_func = self.lookup_function_by_name('lpad')
         least_func = self.lookup_function_by_name('least')
         greatest_func = self.lookup_function_by_name('greatest')
-        greater_or_equal_func = self.lookup_function_by_name('>=')
+        greater_func = self.lookup_function_by_name('>')
         minus_func = self.lookup_function_by_name('-')
 
         # Get the input and restrict it to the number of requested rows if necessary.
@@ -556,14 +556,13 @@ class SparkSubstraitConverter:
         def field_body_fragment(field_number: int) -> List[algebra_pb2.Expression]:
             return [string_literal('|'),
                     if_then_else_operation(
-                        greater_or_equal_function(greater_or_equal_func,
-                                                  strlen(strlen_func,
-                                                         cast_operation(
-                                                             field_reference(field_number),
-                                                             string_type())),
-                                                  minus_function(minus_func, field_reference(
-                                                      field_number + len(symbol.input_fields)),
-                                                                 bigint_literal(3))),
+                        greater_function(greater_func,
+                                         strlen(strlen_func,
+                                                cast_operation(
+                                                    field_reference(field_number),
+                                                    string_type())),
+                                         field_reference(
+                                             field_number + len(symbol.input_fields))),
                         concat(concat_func,
                                [lpad_function(lpad_func, field_reference(field_number),
                                               minus_function(minus_func, field_reference(
