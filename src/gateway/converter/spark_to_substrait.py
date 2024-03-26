@@ -19,7 +19,8 @@ from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_fu
 from gateway.converter.substrait_builder import field_reference, cast_operation, string_type, \
     project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation, \
     max_agg_function, string_literal, flatten, repeat_function, \
-    least_function, greatest_function, bigint_literal, lpad_function, string_concat_agg_function
+    least_function, greatest_function, bigint_literal, lpad_function, string_concat_agg_function, \
+    if_then_else_operation, greater_or_equal_function, minus_function
 from gateway.converter.symbol_table import SymbolTable
 
 
@@ -508,6 +509,8 @@ class SparkSubstraitConverter:
         lpad_func = self.lookup_function_by_name('lpad')
         least_func = self.lookup_function_by_name('least')
         greatest_func = self.lookup_function_by_name('greatest')
+        greater_or_equal_func = self.lookup_function_by_name('>=')
+        minus_func = self.lookup_function_by_name('-')
 
         # Get the input and restrict it to the number of requested rows if necessary.
         input_rel = self.convert_relation(rel.input)
@@ -531,6 +534,7 @@ class SparkSubstraitConverter:
                 max_agg_function(max_func, column_number)
                 for column_number in range(len(symbol.input_fields))])
 
+        # Find the maximum we will use based on the truncate, max size, and column name length.
         project1b = project_relation(
             aggregate1,
             [greatest_function(greatest_func,
@@ -551,8 +555,26 @@ class SparkSubstraitConverter:
 
         def field_body_fragment(field_number: int) -> List[algebra_pb2.Expression]:
             return [string_literal('|'),
-                    lpad_function(lpad_func, field_reference(field_number),
-                                  field_reference(field_number + len(symbol.input_fields)))]
+                    if_then_else_operation(
+                        greater_or_equal_function(greater_or_equal_func,
+                                                  strlen(strlen_func,
+                                                         cast_operation(
+                                                             field_reference(field_number),
+                                                             string_type())),
+                                                  minus_function(minus_func, field_reference(
+                                                      field_number + len(symbol.input_fields)),
+                                                                 bigint_literal(3))),
+                        concat(concat_func,
+                               [lpad_function(lpad_func, field_reference(field_number),
+                                              minus_function(minus_func, field_reference(
+                                                  field_number + len(symbol.input_fields)),
+                                                             bigint_literal(3))),
+                                string_literal('...')]),
+                        lpad_function(lpad_func, field_reference(field_number),
+                                      field_reference(
+                                          field_number + len(symbol.input_fields))),
+
+                    )]
 
         def header_line(fields: List[str]) -> List[algebra_pb2.Expression]:
             return [concat(concat_func,

@@ -40,6 +40,14 @@ SPARK_SUBSTRAIT_MAPPING = {
         '/functions_comparison.yaml', 'equal:str_str', type_pb2.Type(
             bool=type_pb2.Type.Boolean(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
+    '>=': ExtensionFunction(
+        '/functions_comparison.yaml', 'gte:str_str', type_pb2.Type(
+            bool=type_pb2.Type.Boolean(
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
+    '-': ExtensionFunction(
+        '/functions_arithmetic.yaml', 'subtract:i64_i64', type_pb2.Type(
+            i64=type_pb2.Type.I64(
+                nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
     'array_contains': ExtensionFunction(
         '/functions_set.yaml', 'index_in:str_list<str>', type_pb2.Type(
             bool=type_pb2.Type.Boolean(
