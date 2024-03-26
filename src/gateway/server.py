@@ -9,7 +9,7 @@ import grpc
 import pyarrow
 import pyspark.sql.connect.proto.base_pb2_grpc as pb2_grpc
 import pyspark.sql.connect.proto.base_pb2 as pb2
-import pyspark.sql.connect.proto.types_pb2 as types_pb2
+from pyspark.sql.connect.proto import types_pb2
 
 from gateway.converter.conversion_options import duck_db, datafusion
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
@@ -43,6 +43,7 @@ def batch_to_bytes(batch: pyarrow.RecordBatch, schema: pyarrow.Schema) -> bytes:
     return buffer.getvalue()
 
 
+# pylint: disable=E1101
 def convert_pyarrow_schema_to_spark(schema: pyarrow.Schema) -> types_pb2.DataType:
     """Converts a PyArrow schema to a SparkConnect DataType.Struct schema."""
     fields = []

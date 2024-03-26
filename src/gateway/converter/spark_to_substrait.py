@@ -465,7 +465,7 @@ class SparkSubstraitConverter:
 
     # pylint: disable=too-many-locals,pointless-string-statement
     def convert_show_string_relation(self, rel: spark_relations_pb2.ShowString) -> algebra_pb2.Rel:
-        """Converts a show string relation into a Substrait project relation."""
+        """Converts a show string relation into a Substrait subplan."""
         if not self._conversion_options.implement_show_string:
             result = self.convert_relation(rel.input)
             self.update_field_references(rel.input.common.plan_id)
@@ -474,9 +474,9 @@ class SparkSubstraitConverter:
         if rel.vertical:
             raise NotImplementedError('vertical show strings are not yet implemented')
 
-        if rel.truncate < 2:
+        if rel.truncate < 3:
             raise NotImplementedError(
-                'show_string values of truncate of less than 2 not yet implemented')
+                'show_string values of truncate of less than 3 not yet implemented')
 
         """
         The subplan implementing the show_string relation has this flow:
@@ -626,13 +626,22 @@ class SparkSubstraitConverter:
         symbol.output_fields.clear()
         symbol.output_fields.append('show_string')
 
+        def compute_row_count_footer(num_rows: int) -> str:
+            if num_rows == 1:
+                return 'only showing top 1 row\n'
+            if num_rows < 20:
+                return f'only showing top {num_rows} rows\n'
+            return ''
+
         # Combine the header, body, and footer into the final result.
         project5 = project_relation(join2, [
             concat(concat_func, [
                 field_reference(0),
                 field_reference(2),
                 field_reference(1),
-            ]),
+            ] + [string_literal(
+                compute_row_count_footer(rel.num_rows)) if rel.num_rows else None
+                 ]),
         ])
         project5.project.common.emit.output_mapping.append(len(symbol.input_fields))
         return project5
