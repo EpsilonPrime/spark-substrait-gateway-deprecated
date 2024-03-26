@@ -137,7 +137,7 @@ class SparkSubstraitConverter:
                 result = algebra_pb2.Expression.Literal()
             case _:
                 raise NotImplementedError(
-                    f'Unexpected literal type: {literal.WhichOneof('literal_type')}')
+                    f'Unexpected literal type: {literal.WhichOneof("literal_type")}')
         return algebra_pb2.Expression(literal=result)
 
     def convert_unresolved_attribute(
@@ -215,7 +215,7 @@ class SparkSubstraitConverter:
                 cast_rel.type.CopyFrom(self.convert_type_str(cast.type_str))
             case _:
                 raise NotImplementedError(
-                    f'unknown cast_to_type {cast.WhichOneof('cast_to_type')}'
+                    f'unknown cast_to_type {cast.WhichOneof("cast_to_type")}'
                 )
         return algebra_pb2.Expression(cast=cast_rel)
 
@@ -609,15 +609,18 @@ class SparkSubstraitConverter:
                    ),
         ])
 
+        # Merge all of the rows of the result body into a single string.
         aggregate2 = aggregate_relation(project3, measures=[
             string_concat_agg_function(string_concat_func, 0)])
 
+        # Create one row with the header, the body, and the footer in it.
         join2 = join_relation(project2, aggregate2)
 
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         symbol.output_fields.clear()
         symbol.output_fields.append('show_string')
 
+        # Combine the header, body, and footer into the final result.
         project4 = project_relation(join2, [
             concat(concat_func, [
                 field_reference(0),
