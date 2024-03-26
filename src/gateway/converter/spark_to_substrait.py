@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 """Routines to convert SparkConnect plans to Substrait plans."""
-import itertools
 import json
 import operator
 from typing import Dict, Optional, List
@@ -19,9 +18,9 @@ from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
 from gateway.converter.substrait_builder import field_reference, cast_operation, string_type, \
     project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation, \
-    max_agg_function, string_literal, flatten, repeat_function, rpad_function, \
+    max_agg_function, string_literal, flatten, repeat_function, \
     least_function, greatest_function, bigint_literal, lpad_function, string_concat_agg_function
-from gateway.converter.symbol_table import SymbolTable, PlanMetadata
+from gateway.converter.symbol_table import SymbolTable
 
 
 # pylint: disable=E1101,fixme,too-many-public-methods
@@ -144,8 +143,8 @@ class SparkSubstraitConverter:
             self,
             attr: spark_exprs_pb2.Expression.UnresolvedAttribute) -> algebra_pb2.Expression:
         """Converts a Spark unresolved attribute into a Substrait field reference."""
-        field_reference = self.find_field_by_name(attr.unparsed_identifier)
-        if field_reference is None:
+        field_ref = self.find_field_by_name(attr.unparsed_identifier)
+        if field_ref is None:
             raise ValueError(
                 f'could not locate field named {attr.unparsed_identifier} in plan id '
                 f'{self._current_plan_id}')
@@ -153,7 +152,7 @@ class SparkSubstraitConverter:
         return algebra_pb2.Expression(selection=algebra_pb2.Expression.FieldReference(
             direct_reference=algebra_pb2.Expression.ReferenceSegment(
                 struct_field=algebra_pb2.Expression.ReferenceSegment.StructField(
-                    field=field_reference)),
+                    field=field_ref)),
             root_reference=algebra_pb2.Expression.FieldReference.RootReference()))
 
     def convert_unresolved_function(
@@ -463,21 +462,7 @@ class SparkSubstraitConverter:
         symbol.output_fields.extend(symbol.generated_fields)
         return algebra_pb2.Rel(aggregate=aggregate)
 
-    def construct_header_line_string(self, truncate: int, symbol: PlanMetadata) -> str:
-        result = ''
-        for field in symbol.input_fields:
-            result += '+' + '-' * truncate
-        result += '+\n'
-        return result
-
-    def construct_header_string(self, truncate: int, symbol: PlanMetadata) -> str:
-        result = self.construct_header_line_string(truncate, symbol)
-        for field in symbol.input_fields:
-            result += '|' + field.rjust(truncate)
-        result += '|\n'
-        result += self.construct_header_line_string(truncate, symbol)
-        return result
-
+    # pylint: disable=too-many-locals,pointless-string-statement
     def convert_show_string_relation(self, rel: spark_relations_pb2.ShowString) -> algebra_pb2.Rel:
         """Converts a show string relation into a Substrait project relation."""
         if not self._conversion_options.implement_show_string:
