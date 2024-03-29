@@ -196,10 +196,8 @@ def lpad_function(function_info: ExtensionFunction,
                   expression: algebra_pb2.Expression, count: algebra_pb2.Expression,
                   pad_string: str = ' ') -> algebra_pb2.AggregateFunction:
     """Constructs a Substrait concat expression."""
-    cast_type = varchar_type()
-    if True:
-        # TODO -- Avoid a cast if we don't need it.
-        cast_type = string_type()
+    # TODO -- Avoid a cast if we don't need it.
+    cast_type = string_type()
     return algebra_pb2.Expression(scalar_function=
     algebra_pb2.Expression.ScalarFunction(
         function_reference=function_info.anchor,
@@ -215,10 +213,8 @@ def rpad_function(function_info: ExtensionFunction,
                   expression: algebra_pb2.Expression, count: algebra_pb2.Expression,
                   pad_string: str = ' ') -> algebra_pb2.AggregateFunction:
     """Constructs a Substrait concat expression."""
-    cast_type = varchar_type()
-    if True:
-        # TODO -- Avoid a cast if we don't need it.
-        cast_type = string_type()
+    # TODO -- Avoid a cast if we don't need it.
+    cast_type = string_type()
     return algebra_pb2.Expression(scalar_function=
     algebra_pb2.Expression.ScalarFunction(
         function_reference=function_info.anchor,
