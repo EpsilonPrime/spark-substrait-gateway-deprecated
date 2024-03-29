@@ -10,6 +10,7 @@ from pyarrow import substrait
 from substrait.gen.proto import plan_pb2
 
 from gateway.adbc.backend_options import BackendOptions, Backend
+from gateway.converter.rename_functions import RenameFunctions
 from gateway.converter.replace_local_files import ReplaceLocalFilesWithNamedTable
 
 
@@ -51,6 +52,8 @@ class AdbcBackend:
                 if table_name not in registered_tables:
                     ctx.register_parquet(table_name, file)
                 registered_tables.add(files[0])
+
+        RenameFunctions().visit_plan(plan)
 
         try:
             plan_data = plan.SerializeToString()
