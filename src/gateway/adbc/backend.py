@@ -64,6 +64,7 @@ class AdbcBackend:
 
             # Create a DataFrame from a deserialized logical plan
             df_result = ctx.create_dataframe_from_logical_plan(logical_plan)
+            # TODO -- Rename the columns so that they match the names expected in the RelRoot.
             return df_result.to_arrow_table()
         finally:
             for table_name in registered_tables:

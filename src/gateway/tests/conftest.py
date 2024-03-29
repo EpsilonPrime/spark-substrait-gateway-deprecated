@@ -71,7 +71,7 @@ def schema_users():
 @pytest.fixture(scope='module',
                 params=['spark',
                         pytest.param('gateway-over-duckdb', marks=pytest.mark.xfail),
-                        pytest.param('gateway-over-datafusion', marks=pytest.mark.xfail)])
+                        pytest.param('gateway-over-datafusion')])
 def spark_session(request):
     """Provides spark sessions connecting to various backends."""
     match request.param:
