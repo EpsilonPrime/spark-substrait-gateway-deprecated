@@ -64,10 +64,9 @@ class AdbcBackend:
 
             # Create a DataFrame from a deserialized logical plan
             df_result = ctx.create_dataframe_from_logical_plan(logical_plan)
-            schema = df_result.schema()
-            for column_number in range(len(schema.names)):
+            for column_number, column_name in enumerate(df_result.schema().names):
                 df_result = df_result.with_column_renamed(
-                    schema.names[column_number],
+                    column_name,
                     plan.relations[0].root.names[column_number]
                 )
             return df_result.to_arrow_table()
