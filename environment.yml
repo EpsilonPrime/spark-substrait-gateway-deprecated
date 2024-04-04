@@ -20,7 +20,7 @@ dependencies:
     - adbc_driver_manager
     - pyarrow
     - duckdb == 0.10.1
-    - datafusion
+    - datafusion >= 36.0.0
     - pyspark
     - pandas >= 1.0.5
     - pyhamcrest
