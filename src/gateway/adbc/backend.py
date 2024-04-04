@@ -39,7 +39,6 @@ class AdbcBackend:
     # pylint: disable=import-outside-toplevel
     def execute_with_datafusion(self, plan: 'plan_pb2.Plan') -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Datafusion."""
-        import datafusion
         import datafusion.substrait
 
         ctx = datafusion.SessionContext()
