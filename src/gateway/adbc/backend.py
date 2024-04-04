@@ -62,7 +62,7 @@ class AdbcBackend:
                 ctx, substrait_plan
             )
 
-            # Create a DataFrame from a deserialized logical plan
+            # Create a DataFrame from a deserialized logical plan.
             df_result = ctx.create_dataframe_from_logical_plan(logical_plan)
             for column_number, column_name in enumerate(df_result.schema().names):
                 df_result = df_result.with_column_renamed(
