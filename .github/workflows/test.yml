@@ -28,7 +28,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install package and test dependencies
         run: |
-          PIP_VERBOSE=3 $CONDA/bin/conda env update --file environment.yml --name base
+          $CONDA/bin/conda env update --file environment.yml --name base
+          $CONDA/bin/python -m pip install -r requirements.txt -v
       - name: Run tests
         run: |
           $CONDA/bin/python -m pytest
