@@ -16,8 +16,8 @@ dependencies:
   - types-protobuf
   - Faker
   - pip:
-    - cargo
     - adbc_driver_manager
+    - cargo
     - pyarrow >= 13.0.0
     - duckdb == 0.10.1
     - datafusion >= 36.0.0
