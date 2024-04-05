@@ -32,4 +32,4 @@ jobs:
           python -m pip install -r requirements.txt -v
       - name: Run tests
         run: |
-          python -m pytest
+          pytest
