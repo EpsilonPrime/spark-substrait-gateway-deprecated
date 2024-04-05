@@ -15,7 +15,7 @@ dependencies:
   - mypy-protobuf
   - types-protobuf
   - Faker
-  pip:
+  - pip:
     - adbc_driver_manager
     - pyarrow >= 13.0.0
     - duckdb == 0.10.1
