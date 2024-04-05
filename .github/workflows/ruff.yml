@@ -14,11 +14,11 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        conda env update --file environment.yml --name base
-        python -m pip install -r requirements.txt -v
-    - name: Analyzing the code using ruff
-      uses: chartboost/ruff-action@v1
-      with:
-        target-version = "py312"
+      - name: Install dependencies
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Analyzing the code using ruff
+        uses: chartboost/ruff-action@v1
+        with:
+          target-version = "py312"
