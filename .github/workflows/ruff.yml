@@ -1,4 +1,4 @@
-name: Pylint
+name: Ruff
 
 on: [push]
 
@@ -20,5 +20,5 @@ jobs:
         python -m pip install -r requirements.txt -v
     - name: Analyzing the code using ruff
       uses: chartboost/ruff-action@v1
-        with:
-          target-version = "py312"
+      with:
+        target-version = "py312"
