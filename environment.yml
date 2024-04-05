@@ -4,7 +4,7 @@ channels:
 dependencies:
   - pip
   - pre-commit
-  - protobuf >= 4.21.6
+  - protobuf >= 4.21.6, < 5.0.0
   - grpcio >= 1.48.1
   - grpcio-status
   - grpcio-tools
