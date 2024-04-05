@@ -29,10 +29,13 @@ respect-gitignore = true
 target-version = "py310"
 # never autoformat upstream or generated code
 exclude = ["third_party/", "src/spark/connect"]
+
 # do not autofix the following (will still get flagged in lint)
+[lint]
 unfixable = [
   "F401",  # unused imports
   "T201",  # print statements
+  "E712",  # truth comparison checks
 ]
 
 [tool.pylint.MASTER]

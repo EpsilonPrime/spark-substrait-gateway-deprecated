@@ -18,7 +18,6 @@ jobs:
       run: |
         conda env update --file environment.yml --name base
         python -m pip install -r requirements.txt -v
-        conda install pylint">=3.1.0"
     - name: Analyzing the code using ruff
       uses: chartboost/ruff-action@v1
         with:
