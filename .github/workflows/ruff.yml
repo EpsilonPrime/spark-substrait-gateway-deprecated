@@ -17,10 +17,11 @@ jobs:
     - name: Install dependencies
       uses: conda-incubator/setup-miniconda@v3
       with:
-        activate-environment: spark-substrait-gateway-env
+        miniforge-version: "latest"
+        activate-environment: base
         environment-file: environment.yml
         python-version: ${{ matrix.python }}
-        auto-activate-base: false
+        auto-activate-base: true
     - name: Analyzing the code using ruff
       uses: chartboost/ruff-action@v1
       with:
