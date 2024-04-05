@@ -17,12 +17,13 @@ jobs:
     - name: Install dependencies
       uses: conda-incubator/setup-miniconda@v3
       with:
+        miniforge-version: "latest"
         activate-environment: base
         environment-file: environment.yml
         python-version: ${{ matrix.python }}
         auto-activate-base: true
     - name: Analyzing the code using ruff
-      run: |
-        pip install ruff
-        ruff --output-format=github .
+      uses: chartboost/ruff-action@v1
+      with:
+        target-version = "py312"
       continue-on-error: true
