@@ -30,7 +30,7 @@ jobs:
         run: |
           conda env update --file environment.yml --name base
           python -m pip install -r requirements.txt -v
-          pip install pytest">=8.0.0"
+          pip install ".[test]"
       - name: Run tests
         run: |
           python -m pytest
