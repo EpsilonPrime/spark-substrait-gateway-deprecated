@@ -17,7 +17,7 @@ dependencies:
   - Faker
   - pip:
     - adbc_driver_manager
-    - pyarrow >= 15.0.2
+    - pyarrow >= 13.0.0
     - duckdb == 0.10.1
     - datafusion >= 36.0.0
     - pyspark
