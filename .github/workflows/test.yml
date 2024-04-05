@@ -31,4 +31,4 @@ jobs:
           $CONDA/bin/conda env update --file environment.yml --name base
       - name: Run tests
         run: |
-          python -m pytest
+          $CONDA/bin/python -m pytest
