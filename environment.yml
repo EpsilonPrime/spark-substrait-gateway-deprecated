@@ -15,3 +15,12 @@ dependencies:
   - mypy-protobuf
   - types-protobuf
   - Faker
+  pip:
+    - adbc_driver_manager
+    - pyarrow >= 13.0.0
+    - duckdb == 0.10.1
+    - datafusion >= 36.0.0
+    - pyspark
+    - pandas >= 1.0.5
+    - pyhamcrest
+    - substrait-validator
