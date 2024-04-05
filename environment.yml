@@ -3,7 +3,6 @@ channels:
   - conda-forge
 dependencies:
   - pip
-  - cargo
   - pre-commit
   - protobuf >= 4.21.6
   - grpcio >= 1.48.1
@@ -19,6 +18,7 @@ dependencies:
   - Faker
   - pip:
     - adbc_driver_manager
+    - cargo
     - pyarrow
     - duckdb == 0.10.1
     - datafusion
