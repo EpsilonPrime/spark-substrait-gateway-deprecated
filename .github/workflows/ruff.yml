@@ -1,6 +1,8 @@
-name: Pylint
+name: Ruff
 
-on: [push]
+on:
+  pull_request:
+    types: [opened, reopened, edited]
 
 jobs:
   build:
