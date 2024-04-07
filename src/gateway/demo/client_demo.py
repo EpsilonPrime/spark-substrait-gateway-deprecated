@@ -15,6 +15,8 @@ from gateway.demo.mystream_database import get_mystream_schema
 # pylint: disable=fixme
 def execute_query(spark_session: SparkSession) -> None:
     """Runs a single sample query against the gateway."""
+    location_customer = str(Path('../../../third_party/tpch/parquet/customer').absolute())
+
     # df_customer = spark_session.read.parquet('../../../third_party/tpch/parquet/customer',
     #                                          mergeSchema=False)
 
@@ -29,10 +31,9 @@ def execute_query(spark_session: SparkSession) -> None:
         pyarrow.field('c_comment', pyarrow.string(), False),
     ])
 
-    df_customer = spark_session.read.format('parquet') \
-        .schema(from_arrow_schema(schema_customer)) \
-        .parquet('../../../third_party/tpch/parquet/customer',
-                 mergeSchema=False).createOrReplaceTempView('customer')
+    df_customer = (spark_session.read.format('parquet')
+                   .schema(from_arrow_schema(schema_customer))
+                   .load(location_customer))
 
     print(df_customer.limit(10).show())
 
