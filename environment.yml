@@ -3,31 +3,138 @@ channels:
   - conda-forge
 dependencies:
   - arrow-cpp
-  - libabseil
-  - libarrow
   - astroid
-  - pip
-  - pre-commit
-  - protobuf >= 4.21.6, < 5.0.0
-  - grpcio >= 1.48.1
+  - aws-c-auth
+  - aws-c-cal
+  - aws-c-common
+  - aws-c-compression
+  - aws-c-event-stream
+  - aws-c-http
+  - aws-c-io
+  - aws-c-mqtt
+  - aws-c-s3
+  - aws-c-sdkutils
+  - aws-checksums
+  - aws-crt-cpp
+  - aws-sdk-cpp
+  - bzip2
+  - c-ares
+  - ca-certificates
+  - cffi
+  - cfgv
+  - colorama
+  - dill
+  - distlib
+  - exceptiongroup
+  - faker
+  - filelock
+  - gflags
+  - glog
+  - googleapis-common-protos
+  - grpcio
   - grpcio-status
   - grpcio-tools
+  - identify
+  - iniconfig
+  - isort
+  - krb5
+  - libabseil
+  - libarrow
+  - libblas
+  - libbrotlicommon
   - libbrotlidec
-  - pytest >= 8.0.0
-  - setuptools >= 61.0.0
-  - setuptools_scm >= 6.2.0
-  - python-substrait >= 0.14.1
+  - libbrotlienc
+  - libcblas
+  - libcrc32c
+  - libcurl
+  - libcxx
+  - libedit
+  - libev
+  - libevent
+  - libexpat
+  - libffi
+  - libgfortran
+  - libgfortran5
+  - libgoogle-cloud
+  - libgoogle-cloud-storage
+  - libgrpc
+  - liblapack
+  - libnghttp2
+  - libopenblas
+  - libprotobuf
+  - libre2-11
+  - libsqlite
+  - libssh2
+  - libthrift
+  - libutf8proc
+  - libzlib
+  - llvm-openmp
+  - lz4-c
+  - mccabe
   - mypy-protobuf
+  - ncurses
+  - nodeenv
+  - numpy
+  - openssl
+  - orc
+  - packaging
+  - pip
+  - platformdirs
+  - pluggy
+  - pre-commit
+  - protobuf
+  - pycparser
+  - pylint
+  - pytest
+  - python
+  - python-dateutil
+  - python-substrait
+  - python_abi
+  - pyyaml
+  - re2
+  - readline
+  - setuptools
+  - setuptools-scm
+  - setuptools_scm
+  - six
+  - snappy
+  - tk
+  - tomli
+  - tomlkit
+  - types-futures
   - types-protobuf
-  - Faker
+  - typing-extensions
+  - typing_extensions
+  - ukkonen
+  - virtualenv
+  - wheel
+  - xz
+  - yaml
+  - zlib
+  - zstd
   - pip:
-    - adbc_driver_manager
+    - adbc-driver-manager
+    - buf
     - cargo
-    - pyarrow >= 13.0.0
-    - duckdb == 0.10.1
-    - datafusion >= 36.0.0
-    - pyspark
-    - pandas >= 1.0.5
+    - click
+    - datafusion
+    - docopt
+    - duckdb
+    - jdot
+    - mypy
+    - mypy-extensions
+    - pandas
+    - proto-matcher
+    - py4j
+    - pyarrow
     - pyhamcrest
-    - substrait-validator
+    - pyspark
+    - pytest-pycharm
     - pytest-timeout
+    - pytz
+    - ruff
+    - spark-substrait-gateway
+    - substrait
+    - substrait-validator
+    - tabulate
+    - tzdata
