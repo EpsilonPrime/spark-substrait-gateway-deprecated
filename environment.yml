@@ -2,6 +2,10 @@ name: spark-substrait-gateway-env
 channels:
   - conda-forge
 dependencies:
+  - arrow-cpp
+  - libabseil
+  - libarrow
+  - astroid
   - pip
   - pre-commit
   - protobuf >= 4.21.6, < 5.0.0
