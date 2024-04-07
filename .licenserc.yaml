@@ -9,9 +9,16 @@ header:
     - '.gitignore'
     - '.gitmodules'
     - '.licenserc.yaml'
+    - '.pre-commit-config.yaml'
     - 'environment.yml'
     - 'pyproject.toml'
+    - 'LICENSE'
+    - '**/__init__.py'
     - '**/*.golden'
     - '**/*.md'
+    - '**/*.json'
+    - '**/*.spark'
+    - '**/*.splan'
+    - '**/*.sql'
 
   comment: never
