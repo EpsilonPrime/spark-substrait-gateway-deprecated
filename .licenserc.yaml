@@ -20,5 +20,6 @@ header:
     - '**/*.spark'
     - '**/*.splan'
     - '**/*.sql'
+    - '**/*.sql-splan'
 
   comment: never
