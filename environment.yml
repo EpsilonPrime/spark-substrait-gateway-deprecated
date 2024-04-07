@@ -8,6 +8,8 @@ dependencies:
   - grpcio >= 1.48.1
   - grpcio-status
   - grpcio-tools
+  - isort
+  - mypy
   - pytest >= 8.0.0
   - setuptools >= 61.0.0
   - setuptools_scm >= 6.2.0
