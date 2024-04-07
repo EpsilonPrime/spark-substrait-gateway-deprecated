@@ -1,24 +1,23 @@
 # SPDX-License-Identifier: Apache-2.0
 """A PySpark client that can send sample queries to the gateway."""
-import atexit
 from pathlib import Path
 
 import pyarrow
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
+from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.pandas.types import from_arrow_schema
-
-from gateway.demo.mystream_database import create_mystream_database, delete_mystream_database
-from gateway.demo.mystream_database import get_mystream_schema
 
 
 # pylint: disable=fixme
-def execute_query(spark_session: SparkSession) -> None:
-    """Runs a single sample query against the gateway."""
-    location_customer = str(Path('../../../third_party/tpch/parquet/customer').absolute())
+def future_get_customer_database(spark_session: SparkSession) -> DataFrame:
+    # TODO -- Use this when server-side schema evaluation is available.
+    location_customer = str(Path('../../third_party/tpch/parquet/customer').absolute())
 
-    # df_customer = spark_session.read.parquet('../../../third_party/tpch/parquet/customer',
-    #                                          mergeSchema=False)
+    return spark_session.read.parquet(location_customer,
+                                              mergeSchema=False)
+
+
+def get_customer_database(spark_session: SparkSession) -> DataFrame:
+    location_customer = str(Path('../../third_party/tpch/parquet/customer').absolute())
 
     schema_customer = pyarrow.schema([
         pyarrow.field('c_custkey', pyarrow.int64(), False),
@@ -31,17 +30,20 @@ def execute_query(spark_session: SparkSession) -> None:
         pyarrow.field('c_comment', pyarrow.string(), False),
     ])
 
-    df_customer = (spark_session.read.format('parquet')
-                   .schema(from_arrow_schema(schema_customer))
-                   .load(location_customer))
+    return (spark_session.read.format('parquet')
+            .schema(from_arrow_schema(schema_customer))
+            .load(location_customer + '/*.parquet'))
+
+
+# pylint: disable=fixme
+def execute_query(spark_session: SparkSession) -> None:
+    """Runs a single sample query against the gateway."""
+    df_customer = get_customer_database(spark_session)
 
     print(df_customer.limit(10).show())
 
 
 if __name__ == '__main__':
-    atexit.register(delete_mystream_database)
-    path = create_mystream_database()
-
     # TODO -- Make this configurable.
     spark = SparkSession.builder.remote('sc://localhost:50051').getOrCreate()
     execute_query(spark)
