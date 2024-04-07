@@ -6,6 +6,8 @@ import pyarrow
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.pandas.types import from_arrow_schema
 
+USE_GATEWAY = True
+
 
 # pylint: disable=fixme
 def future_get_customer_database(spark_session: SparkSession) -> DataFrame:
@@ -13,7 +15,7 @@ def future_get_customer_database(spark_session: SparkSession) -> DataFrame:
     location_customer = str(Path('../../third_party/tpch/parquet/customer').absolute())
 
     return spark_session.read.parquet(location_customer,
-                                              mergeSchema=False)
+                                      mergeSchema=False)
 
 
 def get_customer_database(spark_session: SparkSession) -> DataFrame:
@@ -26,7 +28,7 @@ def get_customer_database(spark_session: SparkSession) -> DataFrame:
         pyarrow.field('c_nationkey', pyarrow.int64(), False),
         pyarrow.field('c_phone', pyarrow.string(), False),
         pyarrow.field('c_acctbal', pyarrow.float64(), False),
-        pyarrow.field('c_acctbal', pyarrow.string(), False),
+        pyarrow.field('c_mktsegment', pyarrow.string(), False),
         pyarrow.field('c_comment', pyarrow.string(), False),
     ])
 
@@ -44,6 +46,9 @@ def execute_query(spark_session: SparkSession) -> None:
 
 
 if __name__ == '__main__':
-    # TODO -- Make this configurable.
-    spark = SparkSession.builder.remote('sc://localhost:50051').getOrCreate()
+    if USE_GATEWAY:
+        # TODO -- Make the port configurable.
+        spark = SparkSession.builder.remote('sc://localhost:50051').getOrCreate()
+    else:
+        spark = SparkSession.builder.master('local').getOrCreate()
     execute_query(spark)
