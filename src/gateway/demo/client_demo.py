@@ -3,6 +3,7 @@
 import atexit
 from pathlib import Path
 
+import pyarrow
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 from pyspark.sql.pandas.types import from_arrow_schema
@@ -12,23 +13,28 @@ from gateway.demo.mystream_database import get_mystream_schema
 
 
 # pylint: disable=fixme
-# ruff: noqa: E712
 def execute_query(spark_session: SparkSession) -> None:
     """Runs a single sample query against the gateway."""
-    users_location = str(Path('users.parquet').absolute())
-    schema_users = get_mystream_schema('users')
+    # df_customer = spark_session.read.parquet('../../../third_party/tpch/parquet/customer',
+    #                                          mergeSchema=False)
 
-    df_users = spark_session.read.format('parquet') \
-        .schema(from_arrow_schema(schema_users)) \
-        .parquet(users_location)
+    schema_customer = pyarrow.schema([
+        pyarrow.field('c_custkey', pyarrow.int64(), False),
+        pyarrow.field('c_name', pyarrow.string(), False),
+        pyarrow.field('c_address', pyarrow.string(), False),
+        pyarrow.field('c_nationkey', pyarrow.int64(), False),
+        pyarrow.field('c_phone', pyarrow.string(), False),
+        pyarrow.field('c_acctbal', pyarrow.float64(), False),
+        pyarrow.field('c_acctbal', pyarrow.string(), False),
+        pyarrow.field('c_comment', pyarrow.string(), False),
+    ])
 
-    # pylint: disable=singleton-comparison
-    df_users2 = df_users \
-        .filter(col('paid_for_service') == True) \
-        .sort(col('user_id')) \
-        .limit(10)
+    df_customer = spark_session.read.format('parquet') \
+        .schema(from_arrow_schema(schema_customer)) \
+        .parquet('../../../third_party/tpch/parquet/customer',
+                 mergeSchema=False).createOrReplaceTempView('customer')
 
-    df_users2.show()
+    print(df_customer.limit(10).show())
 
 
 if __name__ == '__main__':
