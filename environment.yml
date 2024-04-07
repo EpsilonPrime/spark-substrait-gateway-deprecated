@@ -133,7 +133,6 @@ dependencies:
     - pytest-timeout
     - pytz
     - ruff
-    - spark-substrait-gateway
     - substrait
     - substrait-validator
     - tabulate
