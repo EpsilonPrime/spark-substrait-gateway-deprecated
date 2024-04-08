@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import pyarrow
+from pyspark.sql.functions import col
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.connect.functions import col
 from pyspark.sql.pandas.types import from_arrow_schema
 
 USE_GATEWAY = True
