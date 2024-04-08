@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pyarrow
 from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.connect.functions import col
 from pyspark.sql.pandas.types import from_arrow_schema
 
 USE_GATEWAY = True
@@ -42,7 +43,16 @@ def execute_query(spark_session: SparkSession) -> None:
     """Runs a single sample query against the gateway."""
     df_customer = get_customer_database(spark_session)
 
-    print(df_customer.limit(10).show())
+    # TODO -- Enable after named table registration is implemented.
+    # df_customer.createOrReplaceTempView('customer')
+
+    # pylint: disable=singleton-comparison
+    df_result = df_customer \
+        .filter(col('c_mktsegment') == 'FURNITURE') \
+        .sort(col('c_name')) \
+        .limit(10)
+
+    df_result.show()
 
 
 if __name__ == '__main__':
