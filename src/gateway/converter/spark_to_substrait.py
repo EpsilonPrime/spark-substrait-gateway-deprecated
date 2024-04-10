@@ -4,7 +4,9 @@ import json
 import operator
 from typing import Dict, Optional, List
 
+import adbc_driver_duckdb.dbapi
 import pyarrow
+import pyarrow.parquet
 import pyspark.sql.connect.proto.base_pb2 as spark_pb2
 import pyspark.sql.connect.proto.expressions_pb2 as spark_exprs_pb2
 import pyspark.sql.connect.proto.relations_pb2 as spark_relations_pb2
@@ -16,12 +18,29 @@ from substrait.gen.proto.extensions import extensions_pb2
 
 from gateway.converter.conversion_options import ConversionOptions
 from gateway.converter.spark_functions import ExtensionFunction, lookup_spark_function
+from gateway.converter.sql_to_substrait import convert_sql
 from gateway.converter.substrait_builder import field_reference, cast_operation, string_type, \
     project_relation, strlen, concat, fetch_relation, join_relation, aggregate_relation, \
     max_agg_function, string_literal, flatten, repeat_function, \
     least_function, greatest_function, bigint_literal, lpad_function, string_concat_agg_function, \
     if_then_else_operation, greater_function, minus_function
 from gateway.converter.symbol_table import SymbolTable
+
+
+DUCKDB_TABLE = "duckdb_table"
+
+
+def fetch_schema_with_adbc(path):
+    """Fetch the arrow schema via ADBC."""
+
+    with adbc_driver_duckdb.dbapi.connect() as conn, conn.cursor() as cur:
+        # TODO: Support multiple paths.
+        reader = pyarrow.parquet.ParquetFile(path)
+        cur.adbc_ingest(DUCKDB_TABLE, reader.iter_batches(), mode="create")
+        schema = conn.adbc_get_table_schema(DUCKDB_TABLE)
+        cur.execute(f"DROP TABLE {DUCKDB_TABLE}")
+
+    return schema
 
 
 # pylint: disable=E1101,fixme,too-many-public-methods
@@ -35,6 +54,8 @@ class SparkSubstraitConverter:
         self._symbol_table = SymbolTable()
         self._conversion_options = options
         self._seen_generated_names = {}
+        self._saved_extension_uris = {}
+        self._saved_extensions = {}
 
     def lookup_function_by_name(self, name: str) -> ExtensionFunction:
         """Finds the function reference for a given Spark function name."""
@@ -335,10 +356,47 @@ class SparkSubstraitConverter:
             schema.struct.types.append(field_type)
         return schema
 
+    def convert_arrow_schema(self, arrow_schema: pyarrow.Schema) -> type_pb2.NamedStruct:
+        schema = type_pb2.NamedStruct()
+        schema.struct.nullability = type_pb2.Type.NULLABILITY_REQUIRED
+
+        for field_idx in range(len(arrow_schema)):
+            field = arrow_schema[field_idx]
+            schema.names.append(field.name)
+            if field.nullable:
+                nullability = type_pb2.Type.NULLABILITY_NULLABLE
+            else:
+                nullability = type_pb2.Type.NULLABILITY_REQUIRED
+
+            match str(field.type):
+                case 'bool':
+                    field_type = type_pb2.Type(bool=type_pb2.Type.Boolean(nullability=nullability))
+                case 'int16':
+                    field_type = type_pb2.Type(i16=type_pb2.Type.I16(nullability=nullability))
+                case 'int32':
+                    field_type = type_pb2.Type(i32=type_pb2.Type.I32(nullability=nullability))
+                case 'int64':
+                    field_type = type_pb2.Type(i64=type_pb2.Type.I64(nullability=nullability))
+                case 'float':
+                    field_type = type_pb2.Type(fp32=type_pb2.Type.FP32(nullability=nullability))
+                case 'double':
+                    field_type = type_pb2.Type(fp64=type_pb2.Type.FP64(nullability=nullability))
+                case 'string':
+                    field_type = type_pb2.Type(string=type_pb2.Type.String(nullability=nullability))
+                case _:
+                    raise NotImplementedError(f'Unexpected field type: {field.type}')
+
+            schema.struct.types.append(field_type)
+        return schema
+
     def convert_read_data_source_relation(self, rel: spark_relations_pb2.Read) -> algebra_pb2.Rel:
         """Converts a read data source relation into a Substrait relation."""
         local = algebra_pb2.ReadRel.LocalFiles()
         schema = self.convert_schema(rel.schema)
+        if not schema:
+            path = rel.paths[0]
+            arrow_schema = fetch_schema_with_adbc(path)
+            schema = self.convert_arrow_schema(arrow_schema)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for field_name in schema.names:
             symbol.output_fields.append(field_name)
@@ -739,6 +797,19 @@ class SparkSubstraitConverter:
         read.common.CopyFrom(self.create_common_relation())
         return algebra_pb2.Rel(read=read)
 
+    def convert_sql_relation(self, rel: spark_relations_pb2.SQL) -> algebra_pb2.Rel:
+        """Converts a Spark SQL relation into a Substrait relation."""
+        plan = convert_sql(rel.query)
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        for field_name in plan.relations[0].root.names:
+            symbol.output_fields.append(field_name)
+        # MEGAHACK -- Capture all of the used functions and extensions.
+        self._saved_extension_uris = plan.extension_uris
+        self._saved_extensions = plan.extensions
+        # TODO -- Merge those references into the current context.
+        # TODO -- Renumber all of the functions/extensions in the captured subplan.
+        return plan.relations[0].root.input
+
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Converts a Spark relation into a Substrait one."""
         self._symbol_table.add_symbol(rel.common.plan_id, parent=self._current_plan_id,
@@ -764,6 +835,8 @@ class SparkSubstraitConverter:
                 result = self.convert_to_df_relation(rel.to_df)
             case 'local_relation':
                 result = self.convert_local_relation(rel.local_relation)
+            case 'sql':
+                result = self.convert_sql_relation(rel.sql)
             case _:
                 raise ValueError(
                     f'Unexpected Spark plan rel_type: {rel.WhichOneof("rel_type")}')
@@ -790,4 +863,7 @@ class SparkSubstraitConverter:
                 extension_function=extensions_pb2.SimpleExtensionDeclaration.ExtensionFunction(
                     extension_uri_reference=self._function_uris.get(f.uri),
                     function_anchor=f.anchor, name=f.name)))
+        # As a workaround use the saved extensions and URIs without fixing them.
+        result.extension_uris.extend(self._saved_extension_uris)
+        result.extensions.extend(self._saved_extensions)
         return result

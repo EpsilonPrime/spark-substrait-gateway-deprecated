@@ -2,40 +2,19 @@
 """A PySpark client that can send sample queries to the gateway."""
 from pathlib import Path
 
-import pyarrow
 from pyspark.sql.functions import col
 from pyspark.sql import SparkSession, DataFrame
-from pyspark.sql.pandas.types import from_arrow_schema
 
 USE_GATEWAY = True
 
 
 # pylint: disable=fixme
-def future_get_customer_database(spark_session: SparkSession) -> DataFrame:
-    # TODO -- Use this when server-side schema evaluation is available.
-    location_customer = str(Path('../../third_party/tpch/parquet/customer').absolute())
+def get_customer_database(spark_session: SparkSession) -> DataFrame:
+    # TODO -- Support reading schema from multiple files.
+    location_customer = str(Path('../../../third_party/tpch/parquet/customer/part-0.parquet').resolve())
 
     return spark_session.read.parquet(location_customer,
                                       mergeSchema=False)
-
-
-def get_customer_database(spark_session: SparkSession) -> DataFrame:
-    location_customer = str(Path('../../third_party/tpch/parquet/customer').absolute())
-
-    schema_customer = pyarrow.schema([
-        pyarrow.field('c_custkey', pyarrow.int64(), False),
-        pyarrow.field('c_name', pyarrow.string(), False),
-        pyarrow.field('c_address', pyarrow.string(), False),
-        pyarrow.field('c_nationkey', pyarrow.int64(), False),
-        pyarrow.field('c_phone', pyarrow.string(), False),
-        pyarrow.field('c_acctbal', pyarrow.float64(), False),
-        pyarrow.field('c_mktsegment', pyarrow.string(), False),
-        pyarrow.field('c_comment', pyarrow.string(), False),
-    ])
-
-    return (spark_session.read.format('parquet')
-            .schema(from_arrow_schema(schema_customer))
-            .load(location_customer + '/*.parquet'))
 
 
 # pylint: disable=fixme
@@ -53,6 +32,10 @@ def execute_query(spark_session: SparkSession) -> None:
         .limit(10)
 
     df_result.show()
+
+    sql_results = spark_session.sql(
+        'SELECT c_custkey, c_phone, c_mktsegment FROM customer LIMIT 5').collect()
+    print(sql_results)
 
 
 if __name__ == '__main__':
