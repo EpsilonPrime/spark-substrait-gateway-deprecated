@@ -13,8 +13,7 @@ from gateway.converter.sql_to_substrait import find_tpch
 def spark_session_with_customer_database(spark_session: SparkSession, source: str) -> SparkSession:
     """Creates a temporary view of the customer database."""
     if source == 'spark':
-        tpch_location = find_tpch()
-        customer_location = tpch_location / 'customer'
+        customer_location = find_tpch() / 'customer'
         spark_session.sql(
             'CREATE OR REPLACE TEMPORARY VIEW customer USING org.apache.spark.sql.parquet '
             f'OPTIONS ( path "{customer_location}" )')

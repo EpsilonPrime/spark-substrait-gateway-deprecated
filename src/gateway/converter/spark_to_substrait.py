@@ -803,7 +803,7 @@ class SparkSubstraitConverter:
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for field_name in plan.relations[0].root.names:
             symbol.output_fields.append(field_name)
-        # MEGAHACK -- Capture all of the used functions and extensions.
+        # TODO -- Correctly capture all the used functions and extensions.
         self._saved_extension_uris = plan.extension_uris
         self._saved_extensions = plan.extensions
         # TODO -- Merge those references into the current context.
