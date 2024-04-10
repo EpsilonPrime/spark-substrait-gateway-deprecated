@@ -5,15 +5,19 @@ from pathlib import Path
 from pyspark.sql.functions import col
 from pyspark.sql import SparkSession, DataFrame
 
+from gateway.converter.sql_to_substrait import find_tpch
+
 USE_GATEWAY = True
 
 
 # pylint: disable=fixme
 def get_customer_database(spark_session: SparkSession) -> DataFrame:
     # TODO -- Support reading schema from multiple files.
-    location_customer = str(Path('../../../third_party/tpch/parquet/customer/part-0.parquet').resolve())
+    tpch_location = find_tpch()
+    location_customer = (tpch_location / 'customer').resolve()
+    files = sorted(location_customer.glob('*.parquet'))
 
-    return spark_session.read.parquet(location_customer,
+    return spark_session.read.parquet(str(files[0]),
                                       mergeSchema=False)
 
 
