@@ -11,12 +11,9 @@ USE_GATEWAY = True
 
 # pylint: disable=fixme
 def get_customer_database(spark_session: SparkSession) -> DataFrame:
-    # TODO -- Support reading schema from multiple files.
-    location_customer = find_tpch() / 'customer'
-    files = sorted(location_customer.glob('*.parquet'))
+    location_customer = str(find_tpch() / 'customer')
 
-    return spark_session.read.parquet(str(files[0]),
-                                      mergeSchema=False)
+    return spark_session.read.parquet(location_customer, mergeSchema=False)
 
 
 # pylint: disable=fixme
