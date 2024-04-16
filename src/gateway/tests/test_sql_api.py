@@ -61,6 +61,7 @@ class TestSqlAPI:
             'SELECT c_custkey, c_phone, c_mktsegment FROM customer LIMIT 5').collect()
         assertDataFrameEqual(outcome, expected)
 
+    @pytest.mark.timeout(60)
     @pytest.mark.parametrize(
         'path',
         sql_test_case_paths,
