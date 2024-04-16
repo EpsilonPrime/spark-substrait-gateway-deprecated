@@ -2,6 +2,7 @@
 """Provides access to Datafusion."""
 from pathlib import Path
 
+import datafusion.substrait
 import pyarrow
 from substrait.gen.proto import plan_pb2
 
@@ -10,7 +11,6 @@ from gateway.converter.rename_functions import RenameFunctions
 from gateway.converter.replace_local_files import ReplaceLocalFilesWithNamedTable
 
 
-# pylint: disable=import-outside-toplevel
 class DatafusionBackend(Backend):
     """Provides access to send Substrait plans to Datafusion."""
 
@@ -25,8 +25,6 @@ class DatafusionBackend(Backend):
 
     def execute(self, plan: plan_pb2.Plan) -> pyarrow.lib.Table:
         """Executes the given Substrait plan against Datafusion."""
-        import datafusion.substrait
-
         self.register_tpch()
 
         file_groups = ReplaceLocalFilesWithNamedTable().visit_plan(plan)
