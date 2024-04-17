@@ -64,6 +64,7 @@ unfixable = [
 
 [tool.ruff.lint.per-file-ignores]
 "*test*.py" = ["D"] # ignore all docstring lints in tests
+"__init__.py" = ["D"]
 
 [tool.pylint.MASTER]
 extension-pkg-allow-list = ["pyarrow.lib"]
