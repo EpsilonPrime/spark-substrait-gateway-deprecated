@@ -26,6 +26,7 @@ def simplify_casts(substrait_plan: plan_pb2.Plan) -> plan_pb2.Plan:
 
 
 # pylint: disable=E1101
+# ruff: noqa: T201
 def main():
     """Converts the provided plans from the DuckDB Substrait dialect to Acero's."""
     args = sys.argv[1:]

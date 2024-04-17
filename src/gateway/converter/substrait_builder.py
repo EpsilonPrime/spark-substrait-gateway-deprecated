@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Convenience builder for constructing Substrait plans."""
 import itertools
-from typing import Any, List
+from typing import Any
 
 from gateway.converter.spark_functions import ExtensionFunction
 from substrait.gen.proto import algebra_pb2, type_pb2
@@ -16,9 +16,7 @@ def flatten(list_of_lists: list[list[Any]]) -> list[Any]:
 
 def fetch_relation(input_relation: algebra_pb2.Rel, num_rows: int) -> algebra_pb2.Rel:
     """Constructs a Substrait fetch plan node."""
-    fetch = algebra_pb2.Rel(fetch=algebra_pb2.FetchRel(input=input_relation, count=num_rows))
-
-    return fetch
+    return algebra_pb2.Rel(fetch=algebra_pb2.FetchRel(input=input_relation, count=num_rows))
 
 
 def project_relation(input_relation: algebra_pb2.Rel,

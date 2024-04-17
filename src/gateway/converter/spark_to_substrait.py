@@ -4,9 +4,8 @@ import glob
 import json
 import operator
 import pathlib
-from typing import Dict, List, Optional
 
-import pyarrow
+import pyarrow as pa
 import pyarrow.parquet
 import pyspark.sql.connect.proto.base_pb2 as spark_pb2
 import pyspark.sql.connect.proto.expressions_pb2 as spark_exprs_pb2
@@ -48,6 +47,7 @@ TABLE_NAME = "my_table"
 
 
 # pylint: disable=E1101,fixme,too-many-public-methods
+# ruff: noqa: RUF005
 class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
 
@@ -189,10 +189,8 @@ class SparkSubstraitConverter:
         func = algebra_pb2.Expression.ScalarFunction()
         function_def = self.lookup_function_by_name(unresolved_function.function_name)
         func.function_reference = function_def.anchor
-        curr_arg_count = 0
-        for arg in unresolved_function.arguments:
-            curr_arg_count += 1
-            if function_def.max_args is not None and curr_arg_count > function_def.max_args:
+        for idx, arg in enumerate(unresolved_function.arguments):
+            if function_def.max_args is not None and idx >= function_def.max_args:
                 break
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
@@ -360,7 +358,7 @@ class SparkSubstraitConverter:
             schema.struct.types.append(field_type)
         return schema
 
-    def convert_arrow_schema(self, arrow_schema: pyarrow.Schema) -> type_pb2.NamedStruct:
+    def convert_arrow_schema(self, arrow_schema: pa.Schema) -> type_pb2.NamedStruct:
         schema = type_pb2.NamedStruct()
         schema.struct.nullability = type_pb2.Type.NULLABILITY_REQUIRED
 
@@ -419,9 +417,8 @@ class SparkSubstraitConverter:
             file_paths = rel.paths
         for path in file_paths:
             uri_path = path
-            if self._conversion_options.needs_scheme_in_path_uris:
-                if uri_path.startswith('/'):
-                    uri_path = "file:" + uri_path
+            if self._conversion_options.needs_scheme_in_path_uris and uri_path.startswith('/'):
+                uri_path = "file:" + uri_path
             file_or_files = algebra_pb2.ReadRel.LocalFiles.FileOrFiles(uri_file=uri_path)
             match rel.format:
                 case 'parquet':
@@ -771,12 +768,12 @@ class SparkSubstraitConverter:
         project.common.CopyFrom(self.create_common_relation())
         return algebra_pb2.Rel(project=project)
 
-    def convert_arrow_to_literal(self, val: pyarrow.Scalar) -> algebra_pb2.Expression.Literal:
+    def convert_arrow_to_literal(self, val: pa.Scalar) -> algebra_pb2.Expression.Literal:
         """Converts an Arrow scalar into a Substrait literal."""
         literal = algebra_pb2.Expression.Literal()
-        if isinstance(val, pyarrow.BooleanScalar):
+        if isinstance(val, pa.BooleanScalar):
             literal.boolean = val.as_py()
-        elif isinstance(val, pyarrow.StringScalar):
+        elif isinstance(val, pa.StringScalar):
             literal.string = val.as_py()
         else:
             raise NotImplementedError(
@@ -787,8 +784,8 @@ class SparkSubstraitConverter:
                                             data: bytes) -> algebra_pb2.ReadRel.VirtualTable:
         """Converts a Spark local relation into a virtual table."""
         table = algebra_pb2.ReadRel.VirtualTable()
-        # use Pyarrow to convert the bytes into an arrow structure
-        with pyarrow.ipc.open_stream(data) as arrow:
+        # Use pyarrow to convert the bytes into an arrow structure.
+        with pa.ipc.open_stream(data) as arrow:
             for batch in arrow.iter_batches_with_custom_metadata():
                 for row_number in range(batch.batch.num_rows):
                     values = algebra_pb2.Expression.Literal.Struct()

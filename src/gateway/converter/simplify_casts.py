@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """A library to search Substrait plan for local files."""
-from typing import Any, List, Optional
+from typing import Any
 
 from gateway.converter.output_field_tracking_visitor import get_plan_id
 from gateway.converter.substrait_plan_visitor import SubstraitPlanVisitor

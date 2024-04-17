@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Provides the mapping of Spark functions to Substrait."""
 import dataclasses
-from typing import Optional
 
 from gateway.converter.conversion_options import ConversionOptions
 from substrait.gen.proto import type_pb2

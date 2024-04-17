@@ -32,8 +32,7 @@ class ConversionOptions:
 
 def datafusion():
     """Standard options to connect to a Datafusion backend."""
-    options = ConversionOptions(backend=BackendOptions(Backend.DATAFUSION))
-    return options
+    return ConversionOptions(backend=BackendOptions(Backend.DATAFUSION))
 
 
 def duck_db():
