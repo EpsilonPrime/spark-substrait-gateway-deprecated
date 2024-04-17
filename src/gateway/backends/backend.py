@@ -13,7 +13,12 @@ class Backend:
     """Base class providing methods for contacting a backend utilizing Substrait."""
 
     def __init__(self, options: BackendOptions):
+        self._options = options
         self._connection = None
+
+    @property
+    def options(self):
+        return self._options
 
     def create_connection(self) -> None:
         raise NotImplementedError()
@@ -74,3 +79,4 @@ class Backend:
         self.register_table('partsupp', tpch_location / 'partsupp')
         self.register_table('region', tpch_location / 'region')
         self.register_table('supplier', tpch_location / 'supplier')
+

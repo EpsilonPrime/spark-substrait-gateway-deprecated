@@ -20,7 +20,11 @@ dependencies:
     - cargo
     - pyarrow >= 13.0.0
     - duckdb == 0.10.1
-    - datafusion >= 36.0.0
+    - datafusion >= 35.0.0
+    - ibis
+    - ibis-framework[datafusion]
+    - ibis-framework[duckdb]
+    - ibis_substrait
     - pyspark
     - pandas >= 1.0.5
     - pyhamcrest
