@@ -13,6 +13,7 @@ from pyspark.sql.pandas.types import from_arrow_schema
 from pyspark.sql.session import SparkSession
 
 
+# ruff: noqa: T201
 def _create_local_spark_session() -> SparkSession:
     """Creates a local spark session for testing."""
     spark = (
