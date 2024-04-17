@@ -31,6 +31,10 @@ class ReplaceLocalFilesWithNamedTable(SubstraitPlanVisitor):
             rel.named_table.names.append(self._file_groups[-1][0])
 
     def visit_plan(self, plan: plan_pb2.Plan) -> list[tuple[str, list[str]]]:
+<<<<<<< HEAD
         """Modify the provided plan so that Local Files are replaced with Named Tables."""
+=======
+        """Modifies the provided plan so that Local Files are replaced with Named Tables."""
+>>>>>>> 00fd5e0 (auto-fixes)
         super().visit_plan(plan)
         return self._file_groups
