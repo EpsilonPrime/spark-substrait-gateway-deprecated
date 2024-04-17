@@ -2,9 +2,7 @@
 """Abstract visitor class for Substrait plans."""
 from typing import Any
 
-from substrait.gen.proto import plan_pb2
-from substrait.gen.proto import algebra_pb2
-from substrait.gen.proto import type_pb2
+from substrait.gen.proto import algebra_pb2, plan_pb2, type_pb2
 from substrait.gen.proto.extensions import extensions_pb2
 
 

@@ -3,23 +3,23 @@
 import dataclasses
 from typing import Optional
 
-from substrait.gen.proto import type_pb2
-
 from gateway.converter.conversion_options import ConversionOptions
+from substrait.gen.proto import type_pb2
 
 
 # pylint: disable=E1101
 @dataclasses.dataclass
 class ExtensionFunction:
     """Represents a Substrait function."""
+
     uri: str
     name: str
     output_type: type_pb2.Type
     anchor: int
-    max_args: Optional[int]
+    max_args: int | None
 
     def __init__(self, uri: str, name: str, output_type: type_pb2.Type,
-                 max_args: Optional[int] = None):
+                 max_args: int | None = None):
         self.uri = uri
         self.name = name
         self.output_type = output_type

@@ -2,9 +2,8 @@
 """A library to search Substrait plan for local files."""
 from typing import Any, List, Tuple
 
-from substrait.gen.proto import algebra_pb2, plan_pb2
-
 from gateway.converter.substrait_plan_visitor import SubstraitPlanVisitor
+from substrait.gen.proto import algebra_pb2, plan_pb2
 
 
 # pylint: disable=no-member
@@ -12,7 +11,7 @@ class ReplaceLocalFilesWithNamedTable(SubstraitPlanVisitor):
     """Replaces all of the local file instances with named tables."""
 
     def __init__(self):
-        self._file_groups: List[Tuple[str, List[str]]] = []
+        self._file_groups: list[tuple[str, list[str]]] = []
 
         super().__init__()
 
@@ -31,7 +30,7 @@ class ReplaceLocalFilesWithNamedTable(SubstraitPlanVisitor):
             rel.ClearField('local_files')
             rel.named_table.names.append(self._file_groups[-1][0])
 
-    def visit_plan(self, plan: plan_pb2.Plan) -> List[Tuple[str, List[str]]]:
+    def visit_plan(self, plan: plan_pb2.Plan) -> list[tuple[str, list[str]]]:
         """Modifies the provided plan so that Local Files are replaced with Named Tables."""
         super().visit_plan(plan)
         return self._file_groups

@@ -2,13 +2,15 @@
 """Test fixtures for pytest of the gateway server."""
 from pathlib import Path
 
+import pytest
+from gateway.demo.mystream_database import (
+    create_mystream_database,
+    delete_mystream_database,
+    get_mystream_schema,
+)
+from gateway.server import serve
 from pyspark.sql.pandas.types import from_arrow_schema
 from pyspark.sql.session import SparkSession
-import pytest
-
-from gateway.demo.mystream_database import create_mystream_database, delete_mystream_database
-from gateway.demo.mystream_database import get_mystream_schema
-from gateway.server import serve
 
 
 def _create_local_spark_session() -> SparkSession:
