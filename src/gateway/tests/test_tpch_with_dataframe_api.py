@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """TPC-H Dataframe tests for the Spark to Substrait Gateway server."""
+import datetime
+
 import pyspark
 from pyspark import Row
 from pyspark.sql.functions import avg, col, count, desc, try_sum
@@ -70,4 +72,64 @@ class TestTpchWithDataFrameAPI:
 
         sorted_outcome = outcome.sort(
             desc('s_acctbal'), 'n_name', 's_name', 'p_partkey').limit(2).collect()
+        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+
+    def test_query_03(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(l_orderkey=2456423, revenue=406181.01, o_orderdate=datetime.date(1995, 3, 5),
+                o_shippriority=0),
+            Row(l_orderkey=3459808, revenue=405838.70, o_orderdate=datetime.date(1995, 3, 4),
+                o_shippriority=0),
+            Row(l_orderkey=492164, revenue=390324.06, o_orderdate=datetime.date(1995, 2, 19),
+                o_shippriority=0),
+            Row(l_orderkey=1188320, revenue=384537.94, o_orderdate=datetime.date(1995, 3, 9),
+                o_shippriority=0),
+            Row(l_orderkey=2435712, revenue=378673.06, o_orderdate=datetime.date(1995, 2, 26),
+                o_shippriority=0),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        orders = spark_session_with_tpch_dataset.table('orders')
+
+        fcust = customer.filter(col('c_mktsegment') == 'BUILDING')
+        forders = orders.filter(col('o_orderdate') < '1995-03-15')
+        flineitems = lineitem.filter(lineitem.l_shipdate > '1995-03-15')
+
+        outcome = fcust.join(forders, col('c_custkey') == forders.o_custkey).select(
+            'o_orderkey', 'o_orderdate', 'o_shippriority').join(
+            flineitems, col('o_orderkey') == flineitems.l_orderkey).select(
+            'l_orderkey',
+            (col('l_extendedprice') * (1 - col('l_discount'))).alias("volume"),
+            'o_orderdate',
+            'o_shippriority').groupBy('l_orderkey', 'o_orderdate', 'o_shippriority').agg(
+            try_sum('volume').alias('revenue')).select(
+            'l_orderkey', 'revenue', 'o_orderdate', 'o_shippriority')
+
+        sorted_outcome = outcome.sort(desc('revenue'), 'o_orderdate').limit(5).collect()
+        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+
+    def test_query_04(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(o_orderpriority='1-URGENT', order_count=10594),
+            Row(o_orderpriority='2-HIGH', order_count=10476),
+            Row(o_orderpriority='3-MEDIUM', order_count=10410),
+            Row(o_orderpriority='4-NOT SPECIFIED', order_count=10556),
+            Row(o_orderpriority='5-LOW', order_count=10487),
+        ]
+
+        orders = spark_session_with_tpch_dataset.table('orders')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+
+        forders = orders.filter(
+            (col('o_orderdate') >= "1993-07-01") & (col('o_orderdate') < "1993-10-01"))
+        flineitems = lineitem.filter(col('l_commitdate') < col('l_receiptdate')).select(
+            'l_orderkey').distinct()
+
+        outcome = flineitems.join(
+            forders,
+            col('l_orderkey') == col('o_orderkey')).groupBy('o_orderpriority').agg(
+            count('o_orderpriority').alias('order_count'))
+
+        sorted_outcome = outcome.sort('o_orderpriority').collect()
         assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
