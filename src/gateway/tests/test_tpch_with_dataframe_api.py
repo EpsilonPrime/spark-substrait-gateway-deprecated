@@ -263,3 +263,120 @@ class TestTpchWithDataFrameAPI:
 
         sorted_outcome = outcome.sort('o_year').collect()
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_09(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(n_name='ALGERIA', o_year='1998', sum_profit=27136900.18),
+            Row(n_name='ALGERIA', o_year='1997', sum_profit=48611833.50),
+            Row(n_name='ALGERIA', o_year='1996', sum_profit=48285482.68),
+            Row(n_name='ALGERIA', o_year='1995', sum_profit=44402273.60),
+            Row(n_name='ALGERIA', o_year='1994', sum_profit=48694008.07),
+        ]
+
+        orders = spark_session_with_tpch_dataset.table('orders')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        nation = spark_session_with_tpch_dataset.table('nation')
+        part = spark_session_with_tpch_dataset.table('part')
+        partsupp = spark_session_with_tpch_dataset.table('partsupp')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        linePart = part.filter(col('p_name').contains('green')).join(
+            lineitem, col('p_partkey') == lineitem.l_partkey)
+        natSup = nation.join(supplier, col('n_nationkey') == supplier.s_nationkey)
+
+        outcome = linePart.join(natSup, col('l_suppkey') == natSup.s_suppkey).join(
+            partsupp, (col('l_suppkey') == partsupp.ps_suppkey) & (
+                    col('l_partkey') == partsupp.ps_partkey)).join(
+            orders, col('l_orderkey') == orders.o_orderkey).select(
+            'n_name', col('o_orderdate').substr(0, 4).alias('o_year'),
+            (col('l_extendedprice') * (1 - col('l_discount')) - (
+                    col('ps_supplycost') * col('l_quantity'))).alias('amount')).groupBy(
+            'n_name', 'o_year').agg(try_sum('amount').alias('sum_profit'))
+
+        sorted_outcome = outcome.sort('n_name', desc('o_year')).limit(5).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_10(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(c_custkey=57040, c_name='Customer#000057040', revenue=734235.25,
+                c_acctbal=632.87, n_name='JAPAN', c_address='Eioyzjf4pp',
+                c_phone='22-895-641-3466',
+                c_comment='sits. slyly regular requests sleep alongside of the regular inst'),
+            Row(c_custkey=143347, c_name='Customer#000143347', revenue=721002.69,
+                c_acctbal=2557.47, n_name='EGYPT', c_address='1aReFYv,Kw4',
+                c_phone='14-742-935-3718',
+                c_comment='ggle carefully enticing requests. final deposits use bold, bold '
+                          'pinto beans. ironic, idle re'),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        nation = spark_session_with_tpch_dataset.table('nation')
+        orders = spark_session_with_tpch_dataset.table('orders')
+
+        flineitem = lineitem.filter(col('l_returnflag') == 'R')
+
+        outcome = orders.filter(
+            (col('o_orderdate') >= '1993-10-01') & (col('o_orderdate') < '1994-01-01')).join(
+            customer, col('o_custkey') == customer.c_custkey).join(
+            nation, col('c_nationkey') == nation.n_nationkey).join(
+            flineitem, col('o_orderkey') == flineitem.l_orderkey).select(
+            'c_custkey', 'c_name',
+            (col('l_extendedprice') * (1 - col('l_discount'))).alias('volume'),
+            'c_acctbal', 'n_name', 'c_address', 'c_phone', 'c_comment').groupBy(
+            'c_custkey', 'c_name', 'c_acctbal', 'c_phone', 'n_name', 'c_address', 'c_comment').agg(
+            try_sum('volume').alias('revenue')).select(
+            'c_custkey', 'c_name', 'revenue', 'c_acctbal', 'n_name', 'c_address', 'c_phone',
+            'c_comment')
+
+        sorted_outcome = outcome.sort(desc('revenue')).limit(2).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_11(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(ps_partkey=129760, value=17538456.86),
+            Row(ps_partkey=166726, value=16503353.92),
+            Row(ps_partkey=191287, value=16474801.97),
+            Row(ps_partkey=161758, value=16101755.54),
+            Row(ps_partkey=34452, value=15983844.72),
+        ]
+
+        nation = spark_session_with_tpch_dataset.table('nation')
+        partsupp = spark_session_with_tpch_dataset.table('partsupp')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        tmp = nation.filter(col('n_name') == 'GERMANY').join(
+            supplier, col('n_nationkey') == supplier.s_nationkey).select(
+            's_suppkey').join(partsupp, col('s_suppkey') == partsupp.ps_suppkey).select(
+            'ps_partkey', (col('ps_supplycost') * col('ps_availqty')).alias('value'))
+
+        sumRes = tmp.agg(try_sum('value').alias('total_value'))
+
+        outcome = tmp.groupBy('ps_partkey').agg(
+            (try_sum('value')).alias('part_value')).join(
+            sumRes, col('part_value') > col('total_value') * 0.0001)
+
+        sorted_outcome = outcome.sort(desc('part_value')).limit(5).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_12(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(l_shipmode='MAIL', high_line_count=6202, low_line_count=9324),
+            Row(l_shipmode='SHIP', high_line_count=6200, low_line_count=9262),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        orders = spark_session_with_tpch_dataset.table('orders')
+
+        outcome = lineitem.filter(
+            (col('l_shipmode') == 'MAIL') | (col('l_shipmode') == 'SHIP')).filter(
+            (col('l_commitdate') < col('l_receiptdate')) &
+            (col('l_shipdate') < col('l_commitdate')) &
+            (col('l_receiptdate') >= '1994-01-01') & (col('l_receiptdate') < '1995-01-01')).join(orders,
+               col('l_orderkey') == orders.o_orderkey).select(
+            'l_shipmode', 'o_orderpriority').groupBy('l_shipmode').agg(
+            count(when((col('o_orderpriority') == '1-URGENT') | (col('o_orderpriority') == '2-HIGH'), True)).alias('high_line_count'),
+            count(when((col('o_orderpriority') != '1-URGENT') & (col('o_orderpriority') != '2-HIGH'), True)).alias('low_line_count'))
+
+        sorted_outcome = outcome.sort('l_shipmode').collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
