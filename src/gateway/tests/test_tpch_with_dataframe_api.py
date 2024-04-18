@@ -2,7 +2,7 @@
 """TPC-H Dataframe tests for the Spark to Substrait Gateway server."""
 import pyspark
 from pyspark import Row
-from pyspark.sql.functions import avg, col, count, try_sum, desc
+from pyspark.sql.functions import avg, col, count, desc, try_sum
 from pyspark.testing import assertDataFrameEqual
 
 
