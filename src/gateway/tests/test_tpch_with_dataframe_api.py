@@ -404,3 +404,42 @@ class TestTpchWithDataFrameAPI:
 
         sorted_outcome = outcome.sort(desc('custdist'), desc('c_count')).limit(3).collect()
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_14(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(promo_revenue=16.38),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        part = spark_session_with_tpch_dataset.table('part')
+
+        outcome = part.join(lineitem, (col('l_partkey') == col('p_partkey')) &
+                            (col('l_shipdate') >= '1995-09-01') &
+                            (col('l_shipdate') < '1995-10-01')).select(
+            'p_type', (col('l_extendedprice') * (1 - col('l_discount'))).alias('value')).agg(
+            try_sum(when(col('p_type').contains('PROMO'), col('value'))) * 100 / try_sum(
+                col('value'))
+        ).alias('promo_revenue')
+
+        assertDataFrameEqual(outcome, expected, atol=1e-2)
+
+    def test_query_15(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(s_suppkey=8449, s_name='Supplier#000008449', s_address='Wp34zim9qYFbVctdW'),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        revenue = lineitem.filter((col('l_shipdate') >= '1996-01-01') &
+                                  (col('l_shipdate') < '1996-04-01')).select(
+            'l_suppkey', (col('l_extendedprice') * (1 - col('l_discount'))).alias('value')).groupBy(
+            'l_suppkey').agg(try_sum('value').alias('total'))
+
+        outcome = revenue.agg(pyspark.sql.functions.max(col('total')).alias('max_total')).join(
+            revenue, col('max_total') == revenue.total).join(
+            supplier, col('l_suppkey') == supplier.s_suppkey).select(
+            's_suppkey', 's_name', 's_address', 's_phone', 'total')
+
+        sorted_outcome = outcome.sort('s_suppkey').limit(1).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
