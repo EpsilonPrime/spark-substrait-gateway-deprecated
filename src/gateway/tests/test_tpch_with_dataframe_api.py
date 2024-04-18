@@ -372,11 +372,35 @@ class TestTpchWithDataFrameAPI:
             (col('l_shipmode') == 'MAIL') | (col('l_shipmode') == 'SHIP')).filter(
             (col('l_commitdate') < col('l_receiptdate')) &
             (col('l_shipdate') < col('l_commitdate')) &
-            (col('l_receiptdate') >= '1994-01-01') & (col('l_receiptdate') < '1995-01-01')).join(orders,
-               col('l_orderkey') == orders.o_orderkey).select(
+            (col('l_receiptdate') >= '1994-01-01') & (col('l_receiptdate') < '1995-01-01')).join(
+            orders,
+            col('l_orderkey') == orders.o_orderkey).select(
             'l_shipmode', 'o_orderpriority').groupBy('l_shipmode').agg(
-            count(when((col('o_orderpriority') == '1-URGENT') | (col('o_orderpriority') == '2-HIGH'), True)).alias('high_line_count'),
-            count(when((col('o_orderpriority') != '1-URGENT') & (col('o_orderpriority') != '2-HIGH'), True)).alias('low_line_count'))
+            count(
+                when((col('o_orderpriority') == '1-URGENT') | (col('o_orderpriority') == '2-HIGH'),
+                     True)).alias('high_line_count'),
+            count(
+                when((col('o_orderpriority') != '1-URGENT') & (col('o_orderpriority') != '2-HIGH'),
+                     True)).alias('low_line_count'))
 
         sorted_outcome = outcome.sort('l_shipmode').collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_13(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(c_count=0, custdist=50005),
+            Row(c_count=9, custdist=6641),
+            Row(c_count=10, custdist=6532),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        orders = spark_session_with_tpch_dataset.table('orders')
+
+        outcome = customer.join(
+            orders, (col('c_custkey') == orders.o_custkey) & (
+                ~col('o_comment').rlike('.*special.*requests.*')), 'left_outer').groupBy(
+            'o_custkey').agg(count('o_orderkey').alias('c_count')).groupBy(
+            'c_count').agg(count('o_custkey').alias('custdist'))
+
+        sorted_outcome = outcome.sort(desc('custdist'), desc('c_count')).limit(3).collect()
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
