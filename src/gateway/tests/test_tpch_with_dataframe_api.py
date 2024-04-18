@@ -184,3 +184,40 @@ class TestTpchWithDataFrameAPI:
             try_sum(col('l_extendedprice') * col('l_discount'))).alias('revenue')
 
         assertDataFrameEqual(outcome, expected, rtol=1e-2)
+
+    def test_query_07(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(supp_nation='FRANCE', cust_nation='GERMANY', l_year='1995', revenue=54639732.73),
+            Row(supp_nation='FRANCE', cust_nation='GERMANY', l_year='1996', revenue=54633083.31),
+            Row(supp_nation='GERMANY', cust_nation='FRANCE', l_year='1995', revenue=52531746.67),
+            Row(supp_nation='GERMANY', cust_nation='FRANCE', l_year='1996', revenue=52520549.02),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        orders = spark_session_with_tpch_dataset.table('orders')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+        nation = spark_session_with_tpch_dataset.table('nation')
+
+        fnation = nation.filter((nation.n_name == "FRANCE") | (nation.n_name == "GERMANY"))
+        fline = lineitem.filter(
+            (col('l_shipdate') >= "1995-01-01") & (col('l_shipdate') <= "1996-12-31"))
+
+        suppNation = fnation.join(supplier, col('n_nationkey') == col('s_nationkey')).join(
+            fline, col('s_suppkey') == col('l_suppkey')).select(
+            col('n_name').alias('supp_nation'), 'l_orderkey', 'l_extendedprice', 'l_discount',
+            'l_shipdate')
+
+        outcome = fnation.join(customer, col('n_nationkey') == col('c_nationkey')).join(
+            orders, col('c_custkey') == col('o_custkey')).select(
+            col('n_name').alias('cust_nation'), 'o_orderkey').join(
+            suppNation, col('o_orderkey') == suppNation.l_orderkey).filter(
+            (col('supp_nation') == 'FRANCE') & (col('cust_nation') == 'GERMANY') | (
+                    col('supp_nation') == 'GERMANY') & (col('cust_nation') == 'FRANCE')).select(
+            'supp_nation', 'cust_nation', col('l_shipdate').substr(0, 4).alias('l_year'),
+            (col('l_extendedprice') * (1 - col('l_discount'))).alias('volume')).groupBy(
+            'supp_nation', 'cust_nation', 'l_year').agg(
+            try_sum('volume').alias('revenue'))
+
+        sorted_outcome = outcome.sort('supp_nation', 'cust_nation', 'l_year').collect()
+        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
