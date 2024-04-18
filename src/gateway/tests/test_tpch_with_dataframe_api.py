@@ -1,12 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """TPC-H Dataframe tests for the Spark to Substrait Gateway server."""
 from pyspark import Row
-from pyspark.sql.functions import col, substring, avg, count, try_sum
+from pyspark.sql.functions import avg, col, count, try_sum
 from pyspark.testing import assertDataFrameEqual
 
 
-# pylint: disable=missing-function-docstring
-# ruff: noqa: E712
 class TestTpchWithDataFrameAPI:
     """Runs the TPC-H standard test suite against the dataframe side of SparkConnect."""
 
