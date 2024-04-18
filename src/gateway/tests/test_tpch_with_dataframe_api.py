@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """TPC-H Dataframe tests for the Spark to Substrait Gateway server."""
+import pyspark
 from pyspark import Row
-from pyspark.sql.functions import avg, col, count, try_sum
+from pyspark.sql.functions import avg, col, count, try_sum, desc
 from pyspark.testing import assertDataFrameEqual
 
 
@@ -31,4 +32,42 @@ class TestTpchWithDataFrameAPI:
             count('*').alias('count_order'))
 
         sorted_outcome = outcome.sort('l_returnflag', 'l_linestatus').limit(1).collect()
+        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+
+    def test_query_02(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(s_acctbal=9938.53, s_name='Supplier#000005359', n_name='UNITED KINGDOM',
+                p_partkey=185358, p_mfgr='Manufacturer#4', s_address='QKuHYh,vZGiwu2FWEJoLDx04',
+                s_phone='33-429-790-6131',
+                s_comment='uriously regular requests hag'),
+            Row(s_acctbal=9937.84, s_name='Supplier#000005969', n_name='ROMANIA',
+                p_partkey=108438, p_mfgr='Manufacturer#1',
+                s_address='ANDENSOSmk,miq23Xfb5RWt6dvUcvt6Qa', s_phone='29-520-692-3537',
+                s_comment='efully express instructions. regular requests against the slyly fin'),
+        ]
+
+        part = spark_session_with_tpch_dataset.table('part')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+        partsupp = spark_session_with_tpch_dataset.table('partsupp')
+        nation = spark_session_with_tpch_dataset.table('nation')
+        region = spark_session_with_tpch_dataset.table('region')
+
+        europe = region.filter(col('r_name') == 'EUROPE').join(
+            nation, col('r_regionkey') == col('n_regionkey')).join(
+            supplier, col('n_nationkey') == col('s_nationkey')).join(
+            partsupp, col('s_suppkey') == col('ps_suppkey'))
+
+        brass = part.filter((col('p_size') == 15) & (col('p_type').endswith('BRASS'))).join(
+            europe, col('ps_partkey') == col('p_partkey'))
+
+        minCost = brass.groupBy(col('ps_partkey')).agg(
+            pyspark.sql.functions.min('ps_supplycost').alias('min'))
+
+        outcome = brass.join(minCost, brass.ps_partkey == minCost.ps_partkey).filter(
+            col('ps_supplycost') == col('min')).select('s_acctbal', 's_name', 'n_name', 'p_partkey',
+                                                       'p_mfgr', 's_address', 's_phone',
+                                                       's_comment')
+
+        sorted_outcome = outcome.sort(
+            desc('s_acctbal'), 'n_name', 's_name', 'p_partkey').limit(2).collect()
         assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
