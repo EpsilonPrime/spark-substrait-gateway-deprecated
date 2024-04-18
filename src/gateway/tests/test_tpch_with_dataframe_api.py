@@ -4,7 +4,7 @@ import datetime
 
 import pyspark
 from pyspark import Row
-from pyspark.sql.functions import avg, col, count, desc, try_sum
+from pyspark.sql.functions import avg, col, count, desc, try_sum, when
 from pyspark.testing import assertDataFrameEqual
 
 
@@ -34,7 +34,7 @@ class TestTpchWithDataFrameAPI:
             count('*').alias('count_order'))
 
         sorted_outcome = outcome.sort('l_returnflag', 'l_linestatus').limit(1).collect()
-        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_02(self, spark_session_with_tpch_dataset):
         expected = [
@@ -72,7 +72,7 @@ class TestTpchWithDataFrameAPI:
 
         sorted_outcome = outcome.sort(
             desc('s_acctbal'), 'n_name', 's_name', 'p_partkey').limit(2).collect()
-        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_03(self, spark_session_with_tpch_dataset):
         expected = [
@@ -107,7 +107,7 @@ class TestTpchWithDataFrameAPI:
             'l_orderkey', 'revenue', 'o_orderdate', 'o_shippriority')
 
         sorted_outcome = outcome.sort(desc('revenue'), 'o_orderdate').limit(5).collect()
-        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_04(self, spark_session_with_tpch_dataset):
         expected = [
@@ -132,7 +132,7 @@ class TestTpchWithDataFrameAPI:
             count('o_orderpriority').alias('order_count'))
 
         sorted_outcome = outcome.sort('o_orderpriority').collect()
-        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_05(self, spark_session_with_tpch_dataset):
         expected = [
@@ -167,7 +167,7 @@ class TestTpchWithDataFrameAPI:
 
         sorted_outcome = outcome.sort('revenue').collect()
 
-        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_06(self, spark_session_with_tpch_dataset):
         expected = [
@@ -183,7 +183,7 @@ class TestTpchWithDataFrameAPI:
                                   (col('l_quantity') < 24)).agg(
             try_sum(col('l_extendedprice') * col('l_discount'))).alias('revenue')
 
-        assertDataFrameEqual(outcome, expected, rtol=1e-2)
+        assertDataFrameEqual(outcome, expected, atol=1e-2)
 
     def test_query_07(self, spark_session_with_tpch_dataset):
         expected = [
@@ -199,9 +199,9 @@ class TestTpchWithDataFrameAPI:
         supplier = spark_session_with_tpch_dataset.table('supplier')
         nation = spark_session_with_tpch_dataset.table('nation')
 
-        fnation = nation.filter((nation.n_name == "FRANCE") | (nation.n_name == "GERMANY"))
+        fnation = nation.filter((nation.n_name == 'FRANCE') | (nation.n_name == 'GERMANY'))
         fline = lineitem.filter(
-            (col('l_shipdate') >= "1995-01-01") & (col('l_shipdate') <= "1996-12-31"))
+            (col('l_shipdate') >= '1995-01-01') & (col('l_shipdate') <= '1996-12-31'))
 
         suppNation = fnation.join(supplier, col('n_nationkey') == col('s_nationkey')).join(
             fline, col('s_suppkey') == col('l_suppkey')).select(
@@ -220,4 +220,46 @@ class TestTpchWithDataFrameAPI:
             try_sum('volume').alias('revenue'))
 
         sorted_outcome = outcome.sort('supp_nation', 'cust_nation', 'l_year').collect()
-        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_08(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(o_year='1995', mkt_share=0.03),
+            Row(o_year='1996', mkt_share=0.04),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        orders = spark_session_with_tpch_dataset.table('orders')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        nation = spark_session_with_tpch_dataset.table('nation')
+        part = spark_session_with_tpch_dataset.table('part')
+        region = spark_session_with_tpch_dataset.table('region')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        fregion = region.filter(col('r_name') == 'AMERICA')
+        forder = orders.filter((col('o_orderdate') >= '1995-01-01') & (
+                col('o_orderdate') <= '1996-12-31'))
+        fpart = part.filter(col('p_type') == 'ECONOMY ANODIZED STEEL')
+
+        nat = nation.join(supplier, col('n_nationkey') == col('s_nationkey'))
+
+        line = lineitem.select(
+            'l_partkey', 'l_suppkey', 'l_orderkey',
+            (col('l_extendedprice') * (1 - col('l_discount'))).alias(
+                'volume')).join(
+            fpart, col('l_partkey') == fpart.p_partkey).join(
+            nat, col('l_suppkey') == nat.s_suppkey)
+
+        outcome = nation.join(fregion, col('n_regionkey') == fregion.r_regionkey).select(
+            'n_nationkey', 'n_name').join(customer,
+                                          col('n_nationkey') == col('c_nationkey')).select(
+            'c_custkey').join(forder, col('c_custkey') == col('o_custkey')).select(
+            'o_orderkey', 'o_orderdate').join(line, col('o_orderkey') == line.l_orderkey).select(
+            col('n_name'), col('o_orderdate').substr(0, 4).alias('o_year'),
+            col('volume')).withColumn('case_volume',
+                                      when(col('n_name') == 'BRAZIL', col('volume')).otherwise(
+                                          0)).groupBy('o_year').agg(
+            (try_sum('case_volume') / try_sum('volume')).alias('mkt_share'))
+
+        sorted_outcome = outcome.sort('o_year').collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
