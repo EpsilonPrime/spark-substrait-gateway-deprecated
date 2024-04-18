@@ -21,7 +21,7 @@ class TestTpchWithDataFrameAPI:
         ]
 
         lineitem = spark_session_with_tpch_dataset.table('lineitem')
-        outcome = lineitem.filter(col('l_shipdate') <= "1998-09-02").groupBy('l_returnflag',
+        outcome = lineitem.filter(col('l_shipdate') <= '1998-09-02').groupBy('l_returnflag',
                                                                              'l_linestatus').agg(
             try_sum('l_quantity').alias('sum_qty'),
             try_sum('l_extendedprice').alias('sum_base_price'),
@@ -100,7 +100,7 @@ class TestTpchWithDataFrameAPI:
             'o_orderkey', 'o_orderdate', 'o_shippriority').join(
             flineitems, col('o_orderkey') == flineitems.l_orderkey).select(
             'l_orderkey',
-            (col('l_extendedprice') * (1 - col('l_discount'))).alias("volume"),
+            (col('l_extendedprice') * (1 - col('l_discount'))).alias('volume'),
             'o_orderdate',
             'o_shippriority').groupBy('l_orderkey', 'o_orderdate', 'o_shippriority').agg(
             try_sum('volume').alias('revenue')).select(
@@ -122,7 +122,7 @@ class TestTpchWithDataFrameAPI:
         lineitem = spark_session_with_tpch_dataset.table('lineitem')
 
         forders = orders.filter(
-            (col('o_orderdate') >= "1993-07-01") & (col('o_orderdate') < "1993-10-01"))
+            (col('o_orderdate') >= '1993-07-01') & (col('o_orderdate') < '1993-10-01'))
         flineitems = lineitem.filter(col('l_commitdate') < col('l_receiptdate')).select(
             'l_orderkey').distinct()
 
@@ -133,3 +133,54 @@ class TestTpchWithDataFrameAPI:
 
         sorted_outcome = outcome.sort('o_orderpriority').collect()
         assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+
+    def test_query_05(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(n_name='INDONESIA', revenue=55502041.17),
+            Row(n_name='VIETNAM', revenue=55295087.00),
+            Row(n_name='CHINA', revenue=53724494.26),
+            Row(n_name='INDIA', revenue=52035512.00),
+            Row(n_name='JAPAN', revenue=45410175.70),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        orders = spark_session_with_tpch_dataset.table('orders')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        nation = spark_session_with_tpch_dataset.table('nation')
+        region = spark_session_with_tpch_dataset.table('region')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        forders = orders.filter(col('o_orderdate') >= '1994-01-01').filter(
+            col('o_orderdate') < '1995-01-01')
+
+        outcome = region.filter(col('r_name') == 'ASIA').join(  # r_name = 'ASIA'
+            nation, col('r_regionkey') == col('n_regionkey')).join(
+            supplier, col('n_nationkey') == col('s_nationkey')).join(
+            lineitem, col('s_suppkey') == col('l_suppkey')).select(
+            'n_name', 'l_extendedprice', 'l_discount', 'l_quantity', 'l_orderkey',
+            's_nationkey').join(forders, col('l_orderkey') == forders.o_orderkey).join(
+            customer, (col('o_custkey') == col('c_custkey')) & (
+                    col('s_nationkey') == col('c_nationkey'))).select(
+            'n_name',
+            (col('l_extendedprice') * (1 - col('l_discount'))).alias('volume')).groupBy(
+            'n_name').agg(try_sum('volume').alias('revenue'))
+
+        sorted_outcome = outcome.sort('revenue').collect()
+
+        assertDataFrameEqual(sorted_outcome, expected, rtol=1e-2)
+
+    def test_query_06(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(revenue=123141078.23),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+
+        outcome = lineitem.filter((col('l_shipdate') >= '1994-01-01') &
+                                  (col('l_shipdate') < '1995-01-01') &
+                                  (col('l_discount') >= 0.05) &
+                                  (col('l_discount') <= 0.07) &
+                                  (col('l_quantity') < 24)).agg(
+            try_sum(col('l_extendedprice') * col('l_discount'))).alias('revenue')
+
+        assertDataFrameEqual(outcome, expected, rtol=1e-2)
