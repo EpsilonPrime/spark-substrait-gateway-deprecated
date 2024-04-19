@@ -546,3 +546,113 @@ class TestTpchWithDataFrameAPI:
             try_sum('volume').alias('revenue'))
 
         assertDataFrameEqual(outcome, expected, atol=1e-2)
+
+    def test_query_20(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(s_name='Supplier#000000020', s_address='iybAE,RmTymrZVYaFZva2SH,j'),
+            Row(s_name='Supplier#000000091', s_address='YV45D7TkfdQanOOZ7q9QxkyGUapU1oOWU6q3'),
+            Row(s_name='Supplier#000000205', s_address='rF uV8d0JNEk'),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        nation = spark_session_with_tpch_dataset.table('nation')
+        part = spark_session_with_tpch_dataset.table('part')
+        partsupp = spark_session_with_tpch_dataset.table('partsupp')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        flineitem = lineitem.filter(
+            (col('l_shipdate') >= '1994-01-01') & (col('l_shipdate') < '1995-01-01')).groupBy(
+            'l_partkey', 'l_suppkey').agg(
+            try_sum(col('l_quantity') * 0.5).alias('sum_quantity'))
+
+        fnation = nation.filter(col('n_name') == 'CANADA')
+        nat_supp = supplier.select('s_suppkey', 's_name', 's_nationkey', 's_address').join(
+            fnation, col('s_nationkey') == fnation.n_nationkey)
+
+        outcome = part.filter(col('p_name').startswith('forest')).select('p_partkey').join(
+            partsupp, col('p_partkey') == partsupp.ps_partkey).join(
+            flineitem, (col('ps_suppkey') == flineitem.l_suppkey) & (
+                    col('ps_partkey') == flineitem.l_partkey)).filter(
+            col('ps_availqty') > col('sum_quantity')).select('ps_suppkey').distinct().join(
+            nat_supp, col('ps_suppkey') == nat_supp.s_suppkey).select('s_name', 's_address')
+
+        sorted_outcome = outcome.sort('s_name').limit(3).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_21(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(s_name='Supplier#000002829', numwait=20),
+            Row(s_name='Supplier#000005808', numwait=18),
+            Row(s_name='Supplier#000000262', numwait=17),
+            Row(s_name='Supplier#000000496', numwait=17),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        nation = spark_session_with_tpch_dataset.table('nation')
+        orders = spark_session_with_tpch_dataset.table('orders')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        fsupplier = supplier.select('s_suppkey', 's_nationkey', 's_name')
+
+        plineitem = lineitem.select('l_suppkey', 'l_orderkey', 'l_receiptdate', 'l_commitdate')
+
+        flineitem = plineitem.filter(col('l_receiptdate') > col('l_commitdate'))
+
+        line1 = plineitem.groupBy('l_orderkey').agg(
+            countDistinct('l_suppkey').alias('suppkey_count'),
+            pyspark.sql.functions.max(col('l_suppkey')).alias('suppkey_max')).select(
+            col('l_orderkey').alias('key'), 'suppkey_count', 'suppkey_max')
+
+        line2 = flineitem.groupBy('l_orderkey').agg(
+            countDistinct('l_suppkey').alias('suppkey_count'),
+            pyspark.sql.functions.max(col('l_suppkey')).alias('suppkey_max')).select(
+            col('l_orderkey').alias('key'), 'suppkey_count', 'suppkey_max')
+
+        forder = orders.select('o_orderkey', 'o_orderstatus').filter(col('o_orderstatus') == 'F')
+
+        outcome = nation.filter(col('n_name') == 'SAUDI ARABIA').join(
+            fsupplier, col('n_nationkey') == fsupplier.s_nationkey).join(
+            flineitem, col('s_suppkey') == flineitem.l_suppkey).join(
+            forder, col('l_orderkey') == forder.o_orderkey).join(
+            line1, col('l_orderkey') == line1.key).filter(
+            (col('suppkey_count') > 1) |
+            ((col('suppkey_count') == 1) & (col('l_suppkey') == col('suppkey_max')))).select(
+            's_name', 'l_orderkey', 'l_suppkey').join(
+            line2, col('l_orderkey') == line2.key, 'left_outer').select(
+            's_name', 'l_orderkey', 'l_suppkey', 'suppkey_count', 'suppkey_max').filter(
+            ((col('suppkey_count') == 1) & (col('l_suppkey') == col('suppkey_max')))).groupBy(
+            's_name').agg(count(col('l_suppkey')).alias('numwait'))
+
+        sorted_outcome = outcome.sort(desc('numwait'), 's_name').limit(4).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_22(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(cntrycode='13', numcust=888, totacctbal=6737713.99),
+            Row(cntrycode='17', numcust=861, totacctbal=6460573.72),
+            Row(cntrycode='18', numcust=964, totacctbal=7236687.40),
+            Row(cntrycode='23', numcust=892, totacctbal=6701457.95),
+            Row(cntrycode='29', numcust=948, totacctbal=7158866.63),
+            Row(cntrycode='30', numcust=909, totacctbal=6808436.13),
+            Row(cntrycode='31', numcust=922, totacctbal=6806670.18),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        orders = spark_session_with_tpch_dataset.table('orders')
+
+        fcustomer = customer.select(
+            'c_acctbal', 'c_custkey', (col('c_phone').substr(0, 2)).alias('cntrycode')).filter(
+            col('cntrycode').isin(['13', '31', '23', '29', '30', '18', '17']))
+
+        avg_customer = fcustomer.filter(col('c_acctbal') > 0.00).agg(
+            avg('c_acctbal').alias('avg_acctbal'))
+
+        outcome = orders.groupBy('o_custkey').agg(
+            count('o_custkey')).select('o_custkey').join(
+                fcustomer, col('o_custkey') == fcustomer.c_custkey, 'right_outer').filter(
+                col('o_custkey').isNull()).join(avg_customer).filter(
+                col('c_acctbal') > col('avg_acctbal')).groupBy('cntrycode').agg(
+                count('c_custkey').alias('numcust'), try_sum('c_acctbal'))
+
+        sorted_outcome = outcome.sort('cntrycode').collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
