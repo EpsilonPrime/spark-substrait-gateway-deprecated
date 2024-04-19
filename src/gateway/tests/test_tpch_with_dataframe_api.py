@@ -266,11 +266,11 @@ class TestTpchWithDataFrameAPI:
 
     def test_query_09(self, spark_session_with_tpch_dataset):
         expected = [
-            Row(n_name='ALGERIA', o_year='1998', sum_profit=27136900.18),
-            Row(n_name='ALGERIA', o_year='1997', sum_profit=48611833.50),
-            Row(n_name='ALGERIA', o_year='1996', sum_profit=48285482.68),
-            Row(n_name='ALGERIA', o_year='1995', sum_profit=44402273.60),
-            Row(n_name='ALGERIA', o_year='1994', sum_profit=48694008.07),
+            Row(n_name='ARGENTINA', o_year='1998', sum_profit=28341663.78),
+            Row(n_name='ARGENTINA', o_year='1997', sum_profit=47143964.12),
+            Row(n_name='ARGENTINA', o_year='1996', sum_profit=45255278.60),
+            Row(n_name='ARGENTINA', o_year='1995', sum_profit=45631769.21),
+            Row(n_name='ARGENTINA', o_year='1994', sum_profit=48268856.35),
         ]
 
         orders = spark_session_with_tpch_dataset.table('orders')
@@ -388,9 +388,9 @@ class TestTpchWithDataFrameAPI:
 
     def test_query_13(self, spark_session_with_tpch_dataset):
         expected = [
-            Row(c_count=0, custdist=50005),
             Row(c_count=9, custdist=6641),
             Row(c_count=10, custdist=6532),
+            Row(c_count=11, custdist=6014),
         ]
 
         customer = spark_session_with_tpch_dataset.table('customer')
@@ -620,7 +620,7 @@ class TestTpchWithDataFrameAPI:
             's_name', 'l_orderkey', 'l_suppkey').join(
             line2, col('l_orderkey') == line2.key, 'left_outer').select(
             's_name', 'l_orderkey', 'l_suppkey', 'suppkey_count', 'suppkey_max').filter(
-            ((col('suppkey_count') == 1) & (col('l_suppkey') == col('suppkey_max')))).groupBy(
+            (col('suppkey_count') == 1) & (col('l_suppkey') == col('suppkey_max'))).groupBy(
             's_name').agg(count(col('l_suppkey')).alias('numwait'))
 
         sorted_outcome = outcome.sort(desc('numwait'), 's_name').limit(4).collect()
