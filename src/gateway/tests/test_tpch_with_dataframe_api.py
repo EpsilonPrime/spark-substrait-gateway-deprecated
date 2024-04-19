@@ -4,7 +4,7 @@ import datetime
 
 import pyspark
 from pyspark import Row
-from pyspark.sql.functions import avg, col, count, desc, try_sum, when
+from pyspark.sql.functions import avg, col, count, countDistinct, desc, try_sum, when
 from pyspark.testing import assertDataFrameEqual
 
 
@@ -443,3 +443,50 @@ class TestTpchWithDataFrameAPI:
 
         sorted_outcome = outcome.sort('s_suppkey').limit(1).collect()
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_16(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(p_brand='Brand#41', p_type='MEDIUM BRUSHED TIN', p_size=3, supplier_cnt=28),
+            Row(p_brand='Brand#54', p_type='STANDARD BRUSHED COPPER', p_size=14, supplier_cnt=27),
+            Row(p_brand='Brand#11', p_type='STANDARD BRUSHED TIN', p_size=23, supplier_cnt=24),
+        ]
+
+        part = spark_session_with_tpch_dataset.table('part')
+        partsupp = spark_session_with_tpch_dataset.table('partsupp')
+        supplier = spark_session_with_tpch_dataset.table('supplier')
+
+        fparts = part.filter((col('p_brand') != 'Brand#45') &
+                             (~col('p_type').startswith('MEDIUM POLISHED')) &
+                             (col('p_size').isin([3, 14, 23, 45, 49, 9, 19, 36]))).select(
+            'p_partkey', 'p_brand', 'p_type', 'p_size')
+
+        outcome = supplier.filter(~col('s_comment').rlike('.*Customer.*Complaints.*')).join(
+            partsupp, col('s_suppkey') == partsupp.ps_suppkey).select(
+            'ps_partkey', 'ps_suppkey').join(
+            fparts, col('ps_partkey') == fparts.p_partkey).groupBy(
+            'p_brand', 'p_type', 'p_size').agg(countDistinct('ps_suppkey').alias('supplier_cnt'))
+
+        sorted_outcome = outcome.sort(
+            desc('supplier_cnt'), 'p_brand', 'p_type', 'p_size').limit(3).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_17(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(avg_yearly=348406.02),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        part = spark_session_with_tpch_dataset.table('part')
+
+        fpart = part.filter(
+            (col('p_brand') == 'Brand#23') & (col('p_container') == 'MED BOX')).select(
+            'p_partkey').join(lineitem, col('p_partkey') == lineitem.l_partkey, 'left_outer')
+
+        outcome = fpart.groupBy('p_partkey').agg(
+            (avg('l_quantity') * 0.2).alias('avg_quantity')).select(
+            col('p_partkey').alias('key'), 'avg_quantity').join(
+            fpart, col('key') == fpart.p_partkey).filter(
+            col('l_quantity') < col('avg_quantity')).agg(
+            try_sum('l_extendedprice') / 7).alias('avg_yearly')
+
+        assertDataFrameEqual(outcome, expected, atol=1e-2)
