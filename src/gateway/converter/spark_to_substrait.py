@@ -839,6 +839,54 @@ class SparkSubstraitConverter:
         # TODO -- Renumber all of the functions/extensions in the captured subplan.
         return plan.relations[0].root.input
 
+    def convert_spark_join_type(
+            self, join_type: spark_relations_pb2.Join.JoinType) -> algebra_pb2.JoinRel.JoinType:
+        """Convert a Spark join type into a Substrait join type."""
+        match join_type:
+            case spark_relations_pb2.Join.JOIN_TYPE_UNSPECIFIED:
+                return algebra_pb2.JoinRel.JOIN_TYPE_UNSPECIFIED
+            case spark_relations_pb2.Join.JOIN_TYPE_INNER:
+                return algebra_pb2.JoinRel.JOIN_TYPE_INNER
+            case spark_relations_pb2.Join.JOIN_TYPE_FULL_OUTER:
+                return algebra_pb2.JoinRel.JOIN_TYPE_OUTER
+            case spark_relations_pb2.Join.JOIN_TYPE_LEFT_OUTER:
+                return algebra_pb2.JoinRel.JOIN_TYPE_LEFT
+            case spark_relations_pb2.Join.JOIN_TYPE_RIGHT_OUTER:
+                return algebra_pb2.JoinRel.JOIN_TYPE_RIGHT
+            case spark_relations_pb2.Join.JOIN_TYPE_LEFT_ANTI:
+                return algebra_pb2.JoinRel.JOIN_TYPE_ANTI
+            case spark_relations_pb2.Join.JOIN_TYPE_LEFT_SEMI:
+                return algebra_pb2.JoinRel.JOIN_TYPE_SEMI
+            case spark_relations_pb2.Join.CROSS:
+                raise RuntimeError('Internal error:  cross joins should be handled elsewhere')
+            case _:
+                raise ValueError(f'Unexpected join type: {join_type}')
+
+    def convert_cross_join_relation(self, rel: spark_relations_pb2.Join) -> algebra_pb2.Rel:
+        """Convert a Spark join relation into a Substrait join relation."""
+        join = algebra_pb2.CrossRel(left=self.convert_relation(rel.left),
+                                    right=self.convert_relation(rel.right))
+        self.update_field_references(rel.left.common.plan_id)
+        self.update_field_references(rel.right.common.plan_id)
+        if rel.HasField('join_condition'):
+            raise ValueError('Cross joins do not support having a join condition.')
+        join.common.CopyFrom(self.create_common_relation())
+        return algebra_pb2.Rel(join=join)
+
+    def convert_join_relation(self, rel: spark_relations_pb2.Join) -> algebra_pb2.Rel:
+        """Convert a Spark join relation into a Substrait join relation."""
+        if rel.join_type == spark_relations_pb2.Join.JOIN_TYPE_CROSS:
+            return self.convert_cross_join_relation(rel)
+        join = algebra_pb2.JoinRel(left=self.convert_relation(rel.left),
+                                   right=self.convert_relation(rel.right))
+        self.update_field_references(rel.left.common.plan_id)
+        self.update_field_references(rel.right.common.plan_id)
+        if rel.HasField('join_condition'):
+            join.expression.CopyFrom(self.convert_expression(rel.join_condition))
+        join.type = self.convert_spark_join_type(rel.join_type)
+        join.common.CopyFrom(self.create_common_relation())
+        return algebra_pb2.Rel(join=join)
+
     def convert_relation(self, rel: spark_relations_pb2.Relation) -> algebra_pb2.Rel:
         """Convert a Spark relation into a Substrait one."""
         self._symbol_table.add_symbol(rel.common.plan_id, parent=self._current_plan_id,
@@ -866,6 +914,8 @@ class SparkSubstraitConverter:
                 result = self.convert_local_relation(rel.local_relation)
             case 'sql':
                 result = self.convert_sql_relation(rel.sql)
+            case 'join':
+                result = self.convert_join_relation(rel.join)
             case _:
                 raise ValueError(
                     f'Unexpected Spark plan rel_type: {rel.WhichOneof("rel_type")}')
