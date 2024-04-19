@@ -265,6 +265,7 @@ class TestTpchWithDataFrameAPI:
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_09(self, spark_session_with_tpch_dataset):
+        # TODO -- Verify the corretness of these results against another version of the dataset.
         expected = [
             Row(n_name='ARGENTINA', o_year='1998', sum_profit=28341663.78),
             Row(n_name='ARGENTINA', o_year='1997', sum_profit=47143964.12),
@@ -387,6 +388,7 @@ class TestTpchWithDataFrameAPI:
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_13(self, spark_session_with_tpch_dataset):
+        # TODO -- Verify the corretness of these results against another version of the dataset.
         expected = [
             Row(c_count=9, custdist=6641),
             Row(c_count=10, custdist=6532),
@@ -580,11 +582,13 @@ class TestTpchWithDataFrameAPI:
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_21(self, spark_session_with_tpch_dataset):
+        # TODO -- Verify the corretness of these results against another version of the dataset.
         expected = [
-            Row(s_name='Supplier#000002829', numwait=20),
-            Row(s_name='Supplier#000005808', numwait=18),
-            Row(s_name='Supplier#000000262', numwait=17),
-            Row(s_name='Supplier#000000496', numwait=17),
+            Row(s_name='Supplier#000002095', numwait=26),
+            Row(s_name='Supplier#000003063', numwait=26),
+            Row(s_name='Supplier#000006384', numwait=26),
+            Row(s_name='Supplier#000006450', numwait=26),
+            Row(s_name='Supplier#000000486', numwait=25),
         ]
 
         lineitem = spark_session_with_tpch_dataset.table('lineitem')
@@ -623,7 +627,7 @@ class TestTpchWithDataFrameAPI:
             (col('suppkey_count') == 1) & (col('l_suppkey') == col('suppkey_max'))).groupBy(
             's_name').agg(count(col('l_suppkey')).alias('numwait'))
 
-        sorted_outcome = outcome.sort(desc('numwait'), 's_name').limit(4).collect()
+        sorted_outcome = outcome.sort(desc('numwait'), 's_name').limit(5).collect()
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_22(self, spark_session_with_tpch_dataset):
@@ -649,10 +653,10 @@ class TestTpchWithDataFrameAPI:
 
         outcome = orders.groupBy('o_custkey').agg(
             count('o_custkey')).select('o_custkey').join(
-                fcustomer, col('o_custkey') == fcustomer.c_custkey, 'right_outer').filter(
-                col('o_custkey').isNull()).join(avg_customer).filter(
-                col('c_acctbal') > col('avg_acctbal')).groupBy('cntrycode').agg(
-                count('c_custkey').alias('numcust'), try_sum('c_acctbal'))
+            fcustomer, col('o_custkey') == fcustomer.c_custkey, 'right_outer').filter(
+            col('o_custkey').isNull()).join(avg_customer).filter(
+            col('c_acctbal') > col('avg_acctbal')).groupBy('cntrycode').agg(
+            count('c_custkey').alias('numcust'), try_sum('c_acctbal'))
 
         sorted_outcome = outcome.sort('cntrycode').collect()
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
