@@ -490,3 +490,59 @@ class TestTpchWithDataFrameAPI:
             try_sum('l_extendedprice') / 7).alias('avg_yearly')
 
         assertDataFrameEqual(outcome, expected, atol=1e-2)
+
+    def test_query_18(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(c_name='Customer#000128120', c_custkey=128120, o_orderkey=4722021,
+                o_orderdate=datetime.date(1994, 4, 7),
+                o_totalprice=544089.09, sum_l_quantity=323.00),
+            Row(c_name='Customer#000144617', c_custkey=144617, o_orderkey=3043270,
+                o_orderdate=datetime.date(1997, 2, 12),
+                o_totalprice=530604.44, sum_l_quantity=317.00),
+        ]
+
+        customer = spark_session_with_tpch_dataset.table('customer')
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        orders = spark_session_with_tpch_dataset.table('orders')
+
+        outcome = lineitem.groupBy('l_orderkey').agg(
+            try_sum('l_quantity').alias('sum_quantity')).filter(
+            col('sum_quantity') > 300).select(col('l_orderkey').alias('key'), 'sum_quantity').join(
+            orders, orders.o_orderkey == col('key')).join(
+            lineitem, col('o_orderkey') == lineitem.l_orderkey).join(
+            customer, col('o_custkey') == customer.c_custkey).select(
+            'l_quantity', 'c_name', 'c_custkey', 'o_orderkey', 'o_orderdate',
+            'o_totalprice').groupBy(
+            'c_name', 'c_custkey', 'o_orderkey', 'o_orderdate', 'o_totalprice').agg(
+            try_sum('l_quantity'))
+
+        sorted_outcome = outcome.sort(desc('o_totalprice'), 'o_orderdate').limit(2).collect()
+        assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
+
+    def test_query_19(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(revenue=3083843.06),
+        ]
+
+        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        part = spark_session_with_tpch_dataset.table('part')
+
+        outcome = part.join(lineitem, col('l_partkey') == col('p_partkey')).filter(
+            col('l_shipmode').isin(['AIR', 'AIR REG']) & (
+                    col('l_shipinstruct') == 'DELIVER IN PERSON')).filter(
+            ((col('p_brand') == 'Brand#12') & (
+                col('p_container').isin(['SM CASE', 'SM BOX', 'SM PACK', 'SM PKG'])) &
+             (col('l_quantity') >= 1) & (col('l_quantity') <= 11) &
+             (col('p_size') >= 1) & (col('p_size') <= 5)) |
+            ((col('p_brand') == 'Brand#23') & (
+                col('p_container').isin(['MED BAG', 'MED BOX', 'MED PKG', 'MED PACK'])) &
+             (col('l_quantity') >= 10) & (col('l_quantity') <= 20) &
+             (col('p_size') >= 1) & (col('p_size') <= 10)) |
+            ((col('p_brand') == 'Brand#34') & (
+                col('p_container').isin(['LG CASE', 'LG BOX', 'LG PACK', 'LG PKG'])) &
+             (col('l_quantity') >= 20) & (col('l_quantity') <= 30) &
+             (col('p_size') >= 1) & (col('p_size') <= 15))).select(
+            (col('l_extendedprice') * (1 - col('l_discount'))).alias('volume')).agg(
+            try_sum('volume').alias('revenue'))
+
+        assertDataFrameEqual(outcome, expected, atol=1e-2)
