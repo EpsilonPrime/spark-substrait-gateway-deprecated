@@ -82,6 +82,7 @@ def schema_users():
 
 @pytest.fixture(scope='session',
                 params=['spark',
+                        'gateway-over-arrow',
                         'gateway-over-duckdb',
                         pytest.param('gateway-over-datafusion',
                                      marks=pytest.mark.xfail(
@@ -97,6 +98,8 @@ def spark_session(source):
     match source:
         case 'spark':
             session_generator = _create_local_spark_session()
+        case 'gateway-over-arrow':
+            session_generator = _create_gateway_session('arrow')
         case 'gateway-over-datafusion':
             session_generator = _create_gateway_session('datafusion')
         case 'gateway-over-duckdb':
