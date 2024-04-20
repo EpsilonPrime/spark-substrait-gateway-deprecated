@@ -1,9 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the Spark to Substrait Gateway server."""
+import pytest
 from hamcrest import assert_that, equal_to
 from pyspark import Row
 from pyspark.sql.functions import col, substring
 from pyspark.testing import assertDataFrameEqual
+
+
+@pytest.fixture(autouse=True)
+def mark_tests_as_xfail(request):
+    """Marks a subset of tests as expected to be fail."""
+    source = request.getfixturevalue('source')
+    originalname = request.keywords.get('originalname', None)
+    if source == 'gateway-over-duckdb' and (originalname == 'test_with_column' or
+            originalname == 'test_cast'):
+        request.node.add_marker(pytest.xfail(reason='', strict=True))
 
 
 # pylint: disable=missing-function-docstring

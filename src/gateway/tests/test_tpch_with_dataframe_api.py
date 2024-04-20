@@ -3,9 +3,18 @@
 import datetime
 
 import pyspark
+import pytest
 from pyspark import Row
 from pyspark.sql.functions import avg, col, count, countDistinct, desc, try_sum, when
 from pyspark.testing import assertDataFrameEqual
+
+@pytest.fixture(autouse=True)
+def mark_tests_as_xfail(request):
+    """Marks a subset of tests as expected to be fail."""
+    source = request.getfixturevalue('source')
+    originalname = request.keywords.get('originalname', None)
+    if source == 'gateway-over-duckdb' and originalname == 'test_query_01':
+        request.node.add_marker(pytest.xfail(reason='', strict=True))
 
 
 class TestTpchWithDataFrameAPI:
