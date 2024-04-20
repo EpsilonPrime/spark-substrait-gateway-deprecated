@@ -549,6 +549,7 @@ class SparkSubstraitConverter:
         return f'aggregate_expression{self._seen_generated_names["aggregate_expression"]}'
 
     def determine_name_for_grouping(self, expr: spark_exprs_pb2.Expression) -> str:
+        """Determine the field name the grouping should use."""
         if expr.WhichOneof('expr_type') == 'unresolved_attribute':
             return expr.unresolved_attribute.unparsed_identifier
         return 'grouping'
