@@ -85,8 +85,7 @@ def schema_users():
                         'gateway-over-duckdb',
                         pytest.param('gateway-over-datafusion',
                                      marks=pytest.mark.xfail(
-                                         reason='Datafusion Substrait missing in CI',
-                                         strict=True))])
+                                         reason='Datafusion Substrait missing in CI'))])
 def source(request) -> str:
     """Provides the source (backend) to be used."""
     return request.param

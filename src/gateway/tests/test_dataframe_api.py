@@ -8,13 +8,14 @@ from pyspark.testing import assertDataFrameEqual
 
 
 @pytest.fixture(autouse=True)
-def mark_tests_as_xfail(request):
+def mark_dataframe_tests_as_xfail(request):
     """Marks a subset of tests as expected to be fail."""
     source = request.getfixturevalue('source')
-    originalname = request.keywords.get('originalname', None)
+    originalname = request.keywords.node.originalname
     if source == 'gateway-over-duckdb' and (originalname == 'test_with_column' or
-            originalname == 'test_cast'):
-        request.node.add_marker(pytest.xfail(reason='', strict=True))
+                                            originalname == 'test_cast'):
+        request.node.add_marker(
+            pytest.mark.xfail(reason='DuckDB column binding error'))
 
 
 # pylint: disable=missing-function-docstring
