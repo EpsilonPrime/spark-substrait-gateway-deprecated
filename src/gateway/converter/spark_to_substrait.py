@@ -305,6 +305,7 @@ class SparkSubstraitConverter:
                 function = expression.scalar_function
             case 'window_function':
                 function = expression.window_function
+                func.phase = algebra_pb2.AggregateFunction.Phase.AGGREGATION_PHASE_INITIAL_TO_RESULT
             case _:
                 raise NotImplementedError(
                     'only functions of type unresolved function are supported in aggregate '

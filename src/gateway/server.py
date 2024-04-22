@@ -12,7 +12,7 @@ import pyspark.sql.connect.proto.base_pb2_grpc as pb2_grpc
 from pyspark.sql.connect.proto import types_pb2
 
 from gateway.backends.backend_selector import find_backend
-from gateway.converter.conversion_options import datafusion, duck_db
+from gateway.converter.conversion_options import datafusion, duck_db, arrow
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.converter.sql_to_substrait import convert_sql
 
@@ -148,6 +148,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     def AnalyzePlan(self, request, context):
         """Analyze the given plan and return the results."""
         _LOGGER.info('AnalyzePlan: %s', request)
+        #if request.schema:
+        #    return pb2.AnalyzePlanResponse(session_id=request.session_id, schema=request.schema)
         return pb2.AnalyzePlanResponse(session_id=request.session_id)
 
     def Config(self, request, context):
@@ -160,6 +162,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                     if pair.key == 'spark-substrait-gateway.backend':
                         # Set the server backend for all connections (including ongoing ones).
                         match pair.value:
+                            case 'arrow':
+                                self._options = arrow()
                             case 'duckdb':
                                 self._options = duck_db()
                             case 'datafusion':

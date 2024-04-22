@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pyarrow as pa
+import pyarrow.substrait
 from substrait.gen.proto import plan_pb2
 
 from gateway.backends.backend import Backend
@@ -20,4 +21,4 @@ class ArrowBackend(Backend):
 
     def register_table(self, name: str, path: Path) -> None:
         """Register the given table with the backend."""
-        raise NotImplementedError()
+        pass
