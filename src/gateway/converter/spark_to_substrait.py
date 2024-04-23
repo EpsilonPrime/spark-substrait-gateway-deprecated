@@ -908,7 +908,7 @@ class SparkSubstraitConverter:
         project = algebra_pb2.ProjectRel(input=input_rel)
         self.update_field_references(rel.input.common.plan_id)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        for field_number, expr in rel.expressions.enumerate():
+        for field_number, expr in enumerate(rel.expressions):
             project.expressions.append(self.convert_expression(expr))
             if expr.HasField('alias'):
                 name = expr.alias.name[0]
