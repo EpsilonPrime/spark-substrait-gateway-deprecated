@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Provides access to Acero."""
 from pathlib import Path
+from typing import ClassVar
 
 import pyarrow as pa
 import pyarrow.substrait
@@ -12,7 +13,7 @@ from gateway.backends.backend import Backend
 class ArrowBackend(Backend):
     """Provides access to send Acero Substrait plans."""
 
-    _registered_tables: dict[str, Path] = dict()
+    _registered_tables: ClassVar[dict[str, Path]] = {}
 
     def __init__(self, options):
         """Initialize the Datafusion backend."""

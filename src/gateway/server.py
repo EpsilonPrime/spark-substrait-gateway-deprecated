@@ -12,7 +12,7 @@ import pyspark.sql.connect.proto.base_pb2_grpc as pb2_grpc
 from pyspark.sql.connect.proto import types_pb2
 
 from gateway.backends.backend_selector import find_backend
-from gateway.converter.conversion_options import datafusion, duck_db, arrow
+from gateway.converter.conversion_options import arrow, datafusion, duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.converter.sql_to_substrait import convert_sql
 
