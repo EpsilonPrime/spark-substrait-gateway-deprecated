@@ -25,7 +25,7 @@ class TestDataFrameAPI:
 
     def test_collect(self, users_dataframe):
         outcome = users_dataframe.collect()
-        assert len(outcome) == 29
+        assert len(outcome) == 100
 
     # pylint: disable=singleton-comparison
     def test_filter(self, users_dataframe):
