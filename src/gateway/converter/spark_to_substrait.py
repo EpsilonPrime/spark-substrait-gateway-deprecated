@@ -204,10 +204,16 @@ class SparkSubstraitConverter:
                     return type_pb2.Type(string=type_pb2.Type.String())
                 case _:
                     raise NotImplementedError(
-                        'Type determination not implemented for type '
+                        'Type determination not implemented for literal of type '
                         f'{expr.literal.WhichOneof("literal_type")}.')
-        # TODO -- Implement a way to determine the type of non-literal expressions.
-        return type_pb2.Type(i32=type_pb2.Type.I32())
+        if expr.WhichOneof('rex_type') == 'scalar_function':
+            return expr.scalar_function.output_type
+        if expr.WhichOneof('rex_type') == 'selection':
+            # TODO -- Figure out how to determine the type of a field reference.
+            return type_pb2.Type(i32=type_pb2.Type.I32())
+        raise NotImplementedError(
+            'Type determination not implemented for expressions of type '
+            f'{expr.WhichOneof("rex_type")}.')
 
     def convert_when_function(
             self,
