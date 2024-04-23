@@ -67,7 +67,8 @@ class SparkSubstraitConverter:
             return self._functions.get(name)
         func = lookup_spark_function(name, self._conversion_options)
         if not func:
-            raise LookupError(f'function name {name} does not have a known Substrait conversion')
+            raise LookupError(
+                f'Spark function named {name} does not have a known Substrait conversion.')
         func.anchor = len(self._functions) + 1
         self._functions[name] = func
         if not self._function_uris.get(func.uri):
@@ -298,7 +299,8 @@ class SparkSubstraitConverter:
             self,
             expr: spark_exprs_pb2.Expression) -> algebra_pb2.AggregateFunction:
         """Convert a SparkConnect expression to a Substrait expression."""
-        func = algebra_pb2.AggregateFunction()
+        func = algebra_pb2.AggregateFunction(
+            phase=algebra_pb2.AggregationPhase.AGGREGATION_PHASE_INITIAL_TO_RESULT)
         expression = self.convert_expression(expr)
         match expression.WhichOneof('rex_type'):
             case 'scalar_function':

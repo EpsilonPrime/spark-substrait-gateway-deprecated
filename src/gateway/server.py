@@ -12,7 +12,7 @@ import pyspark.sql.connect.proto.base_pb2_grpc as pb2_grpc
 from pyspark.sql.connect.proto import types_pb2
 
 from gateway.backends.backend_selector import find_backend
-from gateway.converter.conversion_options import datafusion, duck_db
+from gateway.converter.conversion_options import arrow, datafusion, duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
 from gateway.converter.sql_to_substrait import convert_sql
 
@@ -148,7 +148,18 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     def AnalyzePlan(self, request, context):
         """Analyze the given plan and return the results."""
         _LOGGER.info('AnalyzePlan: %s', request)
-        return pb2.AnalyzePlanResponse(session_id=request.session_id)
+        if request.schema:
+            convert = SparkSubstraitConverter(self._options)
+            substrait = convert.convert_plan(request.schema.plan)
+            backend = find_backend(self._options.backend)
+            backend.register_tpch()
+            results = backend.execute(substrait)
+            _LOGGER.debug('  results are: %s', results)
+            return pb2.AnalyzePlanResponse(
+                session_id=request.session_id,
+                schema=pb2.AnalyzePlanResponse.Schema(schema=convert_pyarrow_schema_to_spark(
+                    results.schema)))
+        raise NotImplementedError('AnalyzePlan not yet implemented for non-Schema requests.')
 
     def Config(self, request, context):
         """Get or set the configuration of the server."""
@@ -160,6 +171,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                     if pair.key == 'spark-substrait-gateway.backend':
                         # Set the server backend for all connections (including ongoing ones).
                         match pair.value:
+                            case 'arrow':
+                                self._options = arrow()
                             case 'duckdb':
                                 self._options = duck_db()
                             case 'datafusion':
