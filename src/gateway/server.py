@@ -148,8 +148,6 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
     def AnalyzePlan(self, request, context):
         """Analyze the given plan and return the results."""
         _LOGGER.info('AnalyzePlan: %s', request)
-        #if request.schema:
-        #    return pb2.AnalyzePlanResponse(session_id=request.session_id, schema=request.schema)
         return pb2.AnalyzePlanResponse(session_id=request.session_id)
 
     def Config(self, request, context):
