@@ -40,20 +40,24 @@ class RenameFunctionsForDatafusion(SubstraitPlanVisitor):
 class RenameFunctionsForArrow(SubstraitPlanVisitor):
     """Renames Substrait functions to match what Datafusion expects."""
 
-    def __init__(self):
+    def __init__(self, use_uri_workaround=False):
         """Initialize the RenameFunctionsForArrow class."""
         self._extensions: dict[int, str] = {}
+        self._use_uri_workaround = use_uri_workaround
         super().__init__()
 
     def normalize_extension_uris(self, plan: plan_pb2.Plan) -> None:
         """Normalize the URI."""
         for extension in plan.extension_uris:
-            if extension.uri.startswith('/'):
-                extension.uri = extension.uri.replace(
-                    '/', 'https://github.com/substrait-io/substrait/blob/main/extensions/')
+            if self._use_uri_workaround:
+                extension.uri = 'urn:arrow:substrait_simple_extension_function'
+            else:
+                if extension.uri.startswith('/'):
+                    extension.uri = extension.uri.replace(
+                        '/', 'https://github.com/substrait-io/substrait/blob/main/extensions/')
 
     def index_extension_uris(self, plan: plan_pb2.Plan) -> None:
-        """Adds the extension URIs into a dictionary."""
+        """Add the extension URIs into a dictionary."""
         self._extensions: dict[int, str] = {}
         for extension in plan.extension_uris:
             self._extensions[extension.extension_uri_anchor] = extension.uri

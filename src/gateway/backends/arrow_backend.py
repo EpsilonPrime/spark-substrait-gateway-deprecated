@@ -19,11 +19,12 @@ class ArrowBackend(Backend):
     def __init__(self, options):
         """Initialize the Datafusion backend."""
         super().__init__(options)
+        self._use_uri_workaround = options.use_arrow_uri_workaround
 
     # pylint: disable=import-outside-toplevel
     def execute(self, plan: plan_pb2.Plan) -> pa.lib.Table:
         """Execute the given Substrait plan against Acero."""
-        RenameFunctionsForArrow().visit_plan(plan)
+        RenameFunctionsForArrow(use_uri_workaround=self._use_uri_workaround).visit_plan(plan)
 
         plan_data = plan.SerializeToString()
         reader = pa.substrait.run_query(plan_data, table_provider=self._provide_tables)
