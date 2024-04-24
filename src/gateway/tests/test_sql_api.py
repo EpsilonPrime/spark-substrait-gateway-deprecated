@@ -24,6 +24,7 @@ def mark_tests_as_xfail(request):
         if path.stem in ['02', '04', '15', '16', '17', '18', '20', '21', '22']:
             request.node.add_marker(pytest.mark.xfail(reason='DuckDB needs Delim join'))
     if source == 'gateway-over-datafusion':
+        pytest.importorskip("datafusion.substrait")
         if originalname == 'test_count':
             request.node.add_marker(pytest.mark.xfail(reason='COUNT() not implemented'))
         if originalname in ['test_tpch']:
