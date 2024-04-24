@@ -15,6 +15,15 @@ from pyspark.sql.pandas.types import from_arrow_schema
 from pyspark.sql.session import SparkSession
 
 
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if 'source' in getattr(item, 'fixturenames', ()):
+            source = re.search(r'\[([^,]+?)(-\d+)?]$', item.name).group(1)
+            item.add_marker(source)
+            continue
+        item.add_marker('general')
+
+
 # ruff: noqa: T201
 def _create_local_spark_session() -> SparkSession:
     """Creates a local spark session for testing."""
@@ -89,15 +98,6 @@ def schema_users():
 def source(request) -> str:
     """Provides the source (backend) to be used."""
     return request.param
-
-
-def pytest_collection_modifyitems(items):
-    for item in items:
-        if 'source' in getattr(item, 'fixturenames', ()):
-            source = re.search(r'\[([^,]+).*?]$', item.name).group(1)
-            item.add_marker(source)
-        else:
-            item.add_marker('general')
 
 
 @pytest.fixture(scope='session')
