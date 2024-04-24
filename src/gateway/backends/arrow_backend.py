@@ -8,6 +8,7 @@ import pyarrow.substrait
 from substrait.gen.proto import plan_pb2
 
 from gateway.backends.backend import Backend
+from gateway.converter.rename_functions import RenameFunctionsForArrow
 
 
 class ArrowBackend(Backend):
@@ -22,6 +23,8 @@ class ArrowBackend(Backend):
     # pylint: disable=import-outside-toplevel
     def execute(self, plan: plan_pb2.Plan) -> pa.lib.Table:
         """Execute the given Substrait plan against Acero."""
+        RenameFunctionsForArrow().visit_plan(plan)
+
         plan_data = plan.SerializeToString()
         reader = pa.substrait.run_query(plan_data, table_provider=self._provide_tables)
         return reader.read_all()
@@ -35,9 +38,13 @@ class ArrowBackend(Backend):
         if self._registered_tables.get(name):
             del self._registered_tables[name]
 
+    def describe_table(self, name: str):
+        """Return the schema of the given table."""
+        return pa.parquet.read_table(self._registered_tables[name]).schema
+
     def _provide_tables(self, names: list[str], unused_schema) -> pyarrow.Table:
         """Provide the tables requested."""
         for name in names:
             if name in self._registered_tables:
-                return pa.Table.from_pandas(pa.read_parquet(self._registered_tables[name]))
+                return pa.parquet.read_table(self._registered_tables[name])
         raise ValueError(f'Table {names} not found in {self._registered_tables}')

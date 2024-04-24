@@ -35,6 +35,7 @@ def arrow():
     """Return standard options to connect to the Acero backend."""
     options = ConversionOptions(backend=BackendOptions(Backend.ARROW))
     options.needs_scheme_in_path_uris = True
+    options.implement_show_string = False
     return options
 
 

@@ -81,9 +81,7 @@ def schema_users():
 
 
 @pytest.fixture(scope='session',
-                params=['spark',
-                        'gateway-over-duckdb',
-                        'gateway-over-datafusion',
+                params=['gateway-over-arrow',
                         ])
 def source(request) -> str:
     """Provides the source (backend) to be used."""
