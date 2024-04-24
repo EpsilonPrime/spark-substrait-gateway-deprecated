@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Test fixtures for pytest of the gateway server."""
+import re
 from pathlib import Path
 
 import pytest
@@ -88,6 +89,15 @@ def schema_users():
 def source(request) -> str:
     """Provides the source (backend) to be used."""
     return request.param
+
+
+def pytest_collection_modifyitems(items):
+    for item in items:
+        if 'source' in getattr(item, 'fixturenames', ()):
+            source = re.search(r'\[([^,]+).*?]$', item.name).group(1)
+            item.add_marker(source)
+        else:
+            item.add_marker('general')
 
 
 @pytest.fixture(scope='session')
