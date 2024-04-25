@@ -1055,6 +1055,8 @@ class SparkSubstraitConverter:
 
     def convert_deduplicate_relation(self, rel: spark_relations_pb2.Deduplicate) -> algebra_pb2.Rel:
         """Convert a Spark deduplicate relation into a Substrait aggregation."""
+        any_value_func = self.lookup_function_by_name('any_value')
+
         aggregate = algebra_pb2.AggregateRel(input=self.convert_relation(rel.input))
         self.update_field_references(rel.input.common.plan_id)
         aggregate.common.CopyFrom(self.create_common_relation())
@@ -1065,8 +1067,8 @@ class SparkSubstraitConverter:
             aggregate.measures.append(
                 algebra_pb2.AggregateRel.Measure(
                     measure=algebra_pb2.AggregateFunction(
-                        function_reference=9999,
-                        arguments=[field_reference(idx)],
+                        function_reference=any_value_func.anchor,
+                        arguments=[algebra_pb2.FunctionArgument(value=field_reference(idx))],
                         phase=algebra_pb2.AggregationPhase.AGGREGATION_PHASE_INITIAL_TO_RESULT,
                         output_type=type_pb2.Type(bool=type_pb2.Type.Boolean()))))
             symbol.generated_fields.append(field)
