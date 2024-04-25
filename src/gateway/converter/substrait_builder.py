@@ -240,7 +240,6 @@ def regexp_strpos_function(function_info: ExtensionFunction,
                            position: algebra_pb2.Expression,
                            occurrence: algebra_pb2.Expression) -> algebra_pb2.AggregateFunction:
     """Construct a Substrait regex substring expression."""
-    cast_type = string_type()
     return algebra_pb2.Expression(scalar_function=algebra_pb2.Expression.ScalarFunction(
         function_reference=function_info.anchor,
         output_type=function_info.output_type,

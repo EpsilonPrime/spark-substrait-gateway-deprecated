@@ -10,9 +10,6 @@ import pyspark.sql.connect.proto.base_pb2 as spark_pb2
 import pyspark.sql.connect.proto.expressions_pb2 as spark_exprs_pb2
 import pyspark.sql.connect.proto.relations_pb2 as spark_relations_pb2
 import pyspark.sql.connect.proto.types_pb2 as spark_types_pb2
-from substrait.gen.proto import algebra_pb2, plan_pb2, type_pb2
-from substrait.gen.proto.extensions import extensions_pb2
-
 from gateway.backends.backend_options import BackendOptions
 from gateway.backends.backend_selector import find_backend
 from gateway.converter.conversion_options import ConversionOptions
@@ -45,10 +42,13 @@ from gateway.converter.substrait_builder import (
     strlen,
 )
 from gateway.converter.symbol_table import SymbolTable
+from substrait.gen.proto import algebra_pb2, plan_pb2, type_pb2
+from substrait.gen.proto.extensions import extensions_pb2
 
 TABLE_NAME = "my_table"
 
 
+# ruff: noqa: RUF005
 class SparkSubstraitConverter:
     """Converts SparkConnect plans to Substrait plans."""
 
@@ -291,8 +291,7 @@ class SparkSubstraitConverter:
                         algebra_pb2.FunctionArgument(
                             value=self.convert_expression(in_.arguments[1]))
                     ],
-                    output_type=regexp_matches_func.output_type)
-                )
+                    output_type=regexp_matches_func.output_type))
 
         regexp_strpos_func = self.lookup_function_by_name('regexp_strpos')
         greater_func = self.lookup_function_by_name('>')
