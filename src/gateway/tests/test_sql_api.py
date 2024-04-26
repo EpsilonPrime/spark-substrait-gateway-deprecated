@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the Spark to Substrait Gateway server."""
-import logging
 from pathlib import Path
 
 import pytest
