@@ -4,10 +4,13 @@ import datetime
 
 import pyspark
 import pytest
+import substrait_validator
 from gateway.tests.plan_validator import utilizes_valid_plans
+from google.protobuf import json_format
 from pyspark import Row
 from pyspark.sql.functions import avg, col, count, countDistinct, desc, try_sum, when
 from pyspark.testing import assertDataFrameEqual
+from substrait.gen.proto import plan_pb2
 
 
 @pytest.fixture(autouse=True)
@@ -35,6 +38,26 @@ def mark_tests_as_xfail(request):
     elif source == 'gateway-over-datafusion':
         pytest.importorskip("datafusion.substrait")
         request.node.add_marker(pytest.mark.xfail(reason='gateway internal error'))
+
+
+def validate_plan(json_plan: str):
+    substrait_plan = json_format.Parse(json_plan, plan_pb2.Plan())
+    diagnostics = substrait_validator.plan_to_diagnostics(substrait_plan.SerializeToString())
+    issues = []
+    for issue in diagnostics:
+        if issue.adjusted_level >= substrait_validator.Diagnostic.LEVEL_ERROR:
+            issues.append(issue.msg)
+    if issues:
+        pytest.fail(f'Validation failed.  Issues:\n{issues}\n\nPlan:\n{substrait_plan}\n')
+
+
+def dump_plans(session, printer):
+    if session.conf.get('spark-substrait-gateway.backend', 'spark') == 'spark':
+        return
+    plan_count = int(session.conf.get('spark-substrait-gateway.plan_count'))
+    for i in range(plan_count):
+        plan = session.conf.get(f'spark-substrait-gateway.plan.{i + 1}')
+        printer(f'Plan {i + 1}:\n{plan}\n')
 
 
 class TestTpchWithDataFrameAPI:
