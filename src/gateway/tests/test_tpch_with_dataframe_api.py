@@ -1,12 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """TPC-H Dataframe tests for the Spark to Substrait Gateway server."""
 import datetime
+from contextlib import contextmanager
 
 import pyspark
 import pytest
+import substrait_validator
+from google.protobuf import json_format
 from pyspark import Row
 from pyspark.sql.functions import avg, col, count, countDistinct, desc, try_sum, when
 from pyspark.testing import assertDataFrameEqual
+from substrait.gen.proto import plan_pb2
 
 
 @pytest.fixture(autouse=True)
@@ -25,6 +29,40 @@ def mark_tests_as_xfail(request):
         request.node.add_marker(pytest.mark.xfail(reason='gateway internal error'))
 
 
+def validate_plan(json_plan: str):
+    substrait_plan = json_format.Parse(json_plan, plan_pb2.Plan())
+    diagnostics = substrait_validator.plan_to_diagnostics(substrait_plan.SerializeToString())
+    issues = []
+    for issue in diagnostics:
+        if issue.adjusted_level >= substrait_validator.Diagnostic.LEVEL_ERROR:
+            issues.append(issue.msg)
+    if issues:
+        pytest.fail(f'Validation failed.  Issues:\n{issues}\n\nPlan:\n{substrait_plan}\n')
+
+
+@contextmanager
+def utilizes_valid_plans(session):
+    """Validates that the plans used by the gateway backend pass validation."""
+    # Reset statistics so we only see the plans we used.
+    session.conf.set('spark-substrait-gateway.reset_statistics', None)
+    yield
+    if session.conf.get('spark-substrait-gateway.backend', 'spark') == 'spark':
+        return
+    plan_count = int(session.conf.get('spark-substrait-gateway.plan_count'))
+    for i in range(plan_count):
+        plan = session.conf.get(f'spark-substrait-gateway.plan.{i + 1}')
+        validate_plan(plan)
+
+
+def dump_plans(session, printer):
+    if session.conf.get('spark-substrait-gateway.backend', 'spark') == 'spark':
+        return
+    plan_count = int(session.conf.get('spark-substrait-gateway.plan_count'))
+    for i in range(plan_count):
+        plan = session.conf.get(f'spark-substrait-gateway.plan.{i + 1}')
+        printer(f'Plan {i + 1}:\n{plan}\n')
+
+
 class TestTpchWithDataFrameAPI:
     """Runs the TPC-H standard test suite against the dataframe side of SparkConnect."""
 
@@ -37,20 +75,23 @@ class TestTpchWithDataFrameAPI:
                 avg_price=38273.13, avg_disc=0.05, count_order=1478493),
         ]
 
-        lineitem = spark_session_with_tpch_dataset.table('lineitem')
-        outcome = lineitem.filter(col('l_shipdate') <= '1998-09-02').groupBy('l_returnflag',
-                                                                             'l_linestatus').agg(
-            try_sum('l_quantity').alias('sum_qty'),
-            try_sum('l_extendedprice').alias('sum_base_price'),
-            try_sum(col('l_extendedprice') * (1 - col('l_discount'))).alias('sum_disc_price'),
-            try_sum(col('l_extendedprice') * (1 - col('l_discount')) * (1 + col('l_tax'))).alias(
-                'sum_charge'),
-            avg('l_quantity').alias('avg_qty'),
-            avg('l_extendedprice').alias('avg_price'),
-            avg('l_discount').alias('avg_disc'),
-            count('*').alias('count_order'))
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            lineitem = spark_session_with_tpch_dataset.table('lineitem')
+            outcome = lineitem.filter(col('l_shipdate') <= '1998-09-02').groupBy(
+                'l_returnflag', 'l_linestatus').agg(
+                try_sum('l_quantity').alias('sum_qty'),
+                try_sum('l_extendedprice').alias('sum_base_price'),
+                try_sum(col('l_extendedprice') * (1 - col('l_discount'))).alias('sum_disc_price'),
+                try_sum(
+                    col('l_extendedprice') * (1 - col('l_discount')) * (1 + col('l_tax'))).alias(
+                    'sum_charge'),
+                avg('l_quantity').alias('avg_qty'),
+                avg('l_extendedprice').alias('avg_price'),
+                avg('l_discount').alias('avg_disc'),
+                count('*').alias('count_order'))
 
-        sorted_outcome = outcome.sort('l_returnflag', 'l_linestatus').limit(1).collect()
+            sorted_outcome = outcome.sort('l_returnflag', 'l_linestatus').limit(1).collect()
+
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_02(self, spark_session_with_tpch_dataset):
@@ -65,30 +106,33 @@ class TestTpchWithDataFrameAPI:
                 s_comment='efully express instructions. regular requests against the slyly fin'),
         ]
 
-        part = spark_session_with_tpch_dataset.table('part')
-        supplier = spark_session_with_tpch_dataset.table('supplier')
-        partsupp = spark_session_with_tpch_dataset.table('partsupp')
-        nation = spark_session_with_tpch_dataset.table('nation')
-        region = spark_session_with_tpch_dataset.table('region')
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            part = spark_session_with_tpch_dataset.table('part')
+            supplier = spark_session_with_tpch_dataset.table('supplier')
+            partsupp = spark_session_with_tpch_dataset.table('partsupp')
+            nation = spark_session_with_tpch_dataset.table('nation')
+            region = spark_session_with_tpch_dataset.table('region')
 
-        europe = region.filter(col('r_name') == 'EUROPE').join(
-            nation, col('r_regionkey') == col('n_regionkey')).join(
-            supplier, col('n_nationkey') == col('s_nationkey')).join(
-            partsupp, col('s_suppkey') == col('ps_suppkey'))
+            europe = region.filter(col('r_name') == 'EUROPE').join(
+                nation, col('r_regionkey') == col('n_regionkey')).join(
+                supplier, col('n_nationkey') == col('s_nationkey')).join(
+                partsupp, col('s_suppkey') == col('ps_suppkey'))
 
-        brass = part.filter((col('p_size') == 15) & (col('p_type').endswith('BRASS'))).join(
-            europe, col('ps_partkey') == col('p_partkey'))
+            brass = part.filter((col('p_size') == 15) & (col('p_type').endswith('BRASS'))).join(
+                europe, col('ps_partkey') == col('p_partkey'))
 
-        minCost = brass.groupBy(col('ps_partkey')).agg(
-            pyspark.sql.functions.min('ps_supplycost').alias('min'))
+            minCost = brass.groupBy(col('ps_partkey')).agg(
+                pyspark.sql.functions.min('ps_supplycost').alias('min'))
 
-        outcome = brass.join(minCost, brass.ps_partkey == minCost.ps_partkey).filter(
-            col('ps_supplycost') == col('min')).select('s_acctbal', 's_name', 'n_name', 'p_partkey',
-                                                       'p_mfgr', 's_address', 's_phone',
-                                                       's_comment')
+            outcome = brass.join(minCost, brass.ps_partkey == minCost.ps_partkey).filter(
+                col('ps_supplycost') == col('min')).select('s_acctbal', 's_name', 'n_name',
+                                                           'p_partkey',
+                                                           'p_mfgr', 's_address', 's_phone',
+                                                           's_comment')
 
-        sorted_outcome = outcome.sort(
-            desc('s_acctbal'), 'n_name', 's_name', 'p_partkey').limit(2).collect()
+            sorted_outcome = outcome.sort(
+                desc('s_acctbal'), 'n_name', 's_name', 'p_partkey').limit(2).collect()
+
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_03(self, spark_session_with_tpch_dataset):
@@ -124,6 +168,7 @@ class TestTpchWithDataFrameAPI:
             'l_orderkey', 'revenue', 'o_orderdate', 'o_shippriority')
 
         sorted_outcome = outcome.sort(desc('revenue'), 'o_orderdate').limit(5).collect()
+
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_04(self, spark_session_with_tpch_dataset):
@@ -135,20 +180,22 @@ class TestTpchWithDataFrameAPI:
             Row(o_orderpriority='5-LOW', order_count=10487),
         ]
 
-        orders = spark_session_with_tpch_dataset.table('orders')
-        lineitem = spark_session_with_tpch_dataset.table('lineitem')
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            orders = spark_session_with_tpch_dataset.table('orders')
+            lineitem = spark_session_with_tpch_dataset.table('lineitem')
 
-        forders = orders.filter(
-            (col('o_orderdate') >= '1993-07-01') & (col('o_orderdate') < '1993-10-01'))
-        flineitems = lineitem.filter(col('l_commitdate') < col('l_receiptdate')).select(
-            'l_orderkey').distinct()
+            forders = orders.filter(
+                (col('o_orderdate') >= '1993-07-01') & (col('o_orderdate') < '1993-10-01'))
+            flineitems = lineitem.filter(col('l_commitdate') < col('l_receiptdate')).select(
+                'l_orderkey').distinct()
 
-        outcome = flineitems.join(
-            forders,
-            col('l_orderkey') == col('o_orderkey')).groupBy('o_orderpriority').agg(
-            count('o_orderpriority').alias('order_count'))
+            outcome = flineitems.join(
+                forders,
+                col('l_orderkey') == col('o_orderkey')).groupBy('o_orderpriority').agg(
+                count('o_orderpriority').alias('order_count'))
 
-        sorted_outcome = outcome.sort('o_orderpriority').collect()
+            sorted_outcome = outcome.sort('o_orderpriority').collect()
+
         assertDataFrameEqual(sorted_outcome, expected, atol=1e-2)
 
     def test_query_05(self, spark_session_with_tpch_dataset):
