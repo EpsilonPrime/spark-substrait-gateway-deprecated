@@ -10,7 +10,8 @@ from google.protobuf import json_format
 from pyspark import Row
 from pyspark.sql.functions import avg, col, count, countDistinct, desc, try_sum, when
 from pyspark.testing import assertDataFrameEqual
-from substrait.gen.proto import plan_pb2
+
+from gateway.tests.plan_validator import utilizes_valid_plans
 
 
 @pytest.fixture(autouse=True)
@@ -38,26 +39,6 @@ def mark_tests_as_xfail(request):
     elif source == 'gateway-over-datafusion':
         pytest.importorskip("datafusion.substrait")
         request.node.add_marker(pytest.mark.xfail(reason='gateway internal error'))
-
-
-def validate_plan(json_plan: str):
-    substrait_plan = json_format.Parse(json_plan, plan_pb2.Plan())
-    diagnostics = substrait_validator.plan_to_diagnostics(substrait_plan.SerializeToString())
-    issues = []
-    for issue in diagnostics:
-        if issue.adjusted_level >= substrait_validator.Diagnostic.LEVEL_ERROR:
-            issues.append(issue.msg)
-    if issues:
-        pytest.fail(f'Validation failed.  Issues:\n{issues}\n\nPlan:\n{substrait_plan}\n')
-
-
-def dump_plans(session, printer):
-    if session.conf.get('spark-substrait-gateway.backend', 'spark') == 'spark':
-        return
-    plan_count = int(session.conf.get('spark-substrait-gateway.plan_count'))
-    for i in range(plan_count):
-        plan = session.conf.get(f'spark-substrait-gateway.plan.{i + 1}')
-        printer(f'Plan {i + 1}:\n{plan}\n')
 
 
 class TestTpchWithDataFrameAPI:
@@ -321,8 +302,12 @@ class TestTpchWithDataFrameAPI:
                 'n_nationkey', 'n_name').join(customer,
                                               col('n_nationkey') == col('c_nationkey')).select(
                 'c_custkey').join(forder, col('c_custkey') == col('o_custkey')).select(
+<<<<<<< HEAD
                 'o_orderkey', 'o_orderdate').join(line,
                                                   col('o_orderkey') == line.l_orderkey).select(
+=======
+                'o_orderkey', 'o_orderdate').join(line, col('o_orderkey') == line.l_orderkey).select(
+>>>>>>> 781dff8 (add validation)
                 col('n_name'), col('o_orderdate').substr(0, 4).alias('o_year'),
                 col('volume')).withColumn('case_volume',
                                           when(col('n_name') == 'BRAZIL', col('volume')).otherwise(
@@ -397,8 +382,12 @@ class TestTpchWithDataFrameAPI:
                 'c_custkey', 'c_name',
                 (col('l_extendedprice') * (1 - col('l_discount'))).alias('volume'),
                 'c_acctbal', 'n_name', 'c_address', 'c_phone', 'c_comment').groupBy(
+<<<<<<< HEAD
                 'c_custkey', 'c_name', 'c_acctbal', 'c_phone', 'n_name', 'c_address',
                 'c_comment').agg(
+=======
+                'c_custkey', 'c_name', 'c_acctbal', 'c_phone', 'n_name', 'c_address', 'c_comment').agg(
+>>>>>>> 781dff8 (add validation)
                 try_sum('volume').alias('revenue')).select(
                 'c_custkey', 'c_name', 'revenue', 'c_acctbal', 'n_name', 'c_address', 'c_phone',
                 'c_comment')
@@ -450,18 +439,29 @@ class TestTpchWithDataFrameAPI:
                 (col('l_shipmode') == 'MAIL') | (col('l_shipmode') == 'SHIP')).filter(
                 (col('l_commitdate') < col('l_receiptdate')) &
                 (col('l_shipdate') < col('l_commitdate')) &
+<<<<<<< HEAD
                 (col('l_receiptdate') >= '1994-01-01') & (
                         col('l_receiptdate') < '1995-01-01')).join(
+=======
+                (col('l_receiptdate') >= '1994-01-01') & (col('l_receiptdate') < '1995-01-01')).join(
+>>>>>>> 781dff8 (add validation)
                 orders,
                 col('l_orderkey') == orders.o_orderkey).select(
                 'l_shipmode', 'o_orderpriority').groupBy('l_shipmode').agg(
                 count(
+<<<<<<< HEAD
                     when((col('o_orderpriority') == '1-URGENT') | (
                             col('o_orderpriority') == '2-HIGH'),
                          True)).alias('high_line_count'),
                 count(
                     when((col('o_orderpriority') != '1-URGENT') & (
                             col('o_orderpriority') != '2-HIGH'),
+=======
+                    when((col('o_orderpriority') == '1-URGENT') | (col('o_orderpriority') == '2-HIGH'),
+                         True)).alias('high_line_count'),
+                count(
+                    when((col('o_orderpriority') != '1-URGENT') & (col('o_orderpriority') != '2-HIGH'),
+>>>>>>> 781dff8 (add validation)
                          True)).alias('low_line_count'))
 
             sorted_outcome = outcome.sort('l_shipmode').collect()
@@ -520,8 +520,12 @@ class TestTpchWithDataFrameAPI:
 
             revenue = lineitem.filter((col('l_shipdate') >= '1996-01-01') &
                                       (col('l_shipdate') < '1996-04-01')).select(
+<<<<<<< HEAD
                 'l_suppkey',
                 (col('l_extendedprice') * (1 - col('l_discount'))).alias('value')).groupBy(
+=======
+                'l_suppkey', (col('l_extendedprice') * (1 - col('l_discount'))).alias('value')).groupBy(
+>>>>>>> 781dff8 (add validation)
                 'l_suppkey').agg(try_sum('value').alias('total'))
 
             outcome = revenue.agg(pyspark.sql.functions.max(col('total')).alias('max_total')).join(
@@ -554,8 +558,12 @@ class TestTpchWithDataFrameAPI:
                 partsupp, col('s_suppkey') == partsupp.ps_suppkey).select(
                 'ps_partkey', 'ps_suppkey').join(
                 fparts, col('ps_partkey') == fparts.p_partkey).groupBy(
+<<<<<<< HEAD
                 'p_brand', 'p_type', 'p_size').agg(
                 countDistinct('ps_suppkey').alias('supplier_cnt'))
+=======
+                'p_brand', 'p_type', 'p_size').agg(countDistinct('ps_suppkey').alias('supplier_cnt'))
+>>>>>>> 781dff8 (add validation)
 
             sorted_outcome = outcome.sort(
                 desc('supplier_cnt'), 'p_brand', 'p_type', 'p_size').limit(3).collect()
@@ -601,8 +609,12 @@ class TestTpchWithDataFrameAPI:
 
             outcome = lineitem.groupBy('l_orderkey').agg(
                 try_sum('l_quantity').alias('sum_quantity')).filter(
+<<<<<<< HEAD
                 col('sum_quantity') > 300).select(col('l_orderkey').alias('key'),
                                                   'sum_quantity').join(
+=======
+                col('sum_quantity') > 300).select(col('l_orderkey').alias('key'), 'sum_quantity').join(
+>>>>>>> 781dff8 (add validation)
                 orders, orders.o_orderkey == col('key')).join(
                 lineitem, col('o_orderkey') == lineitem.l_orderkey).join(
                 customer, col('o_custkey') == customer.c_custkey).select(
@@ -710,8 +722,12 @@ class TestTpchWithDataFrameAPI:
                 pyspark.sql.functions.max(col('l_suppkey')).alias('suppkey_max')).select(
                 col('l_orderkey').alias('key'), 'suppkey_count', 'suppkey_max')
 
+<<<<<<< HEAD
             forder = orders.select('o_orderkey', 'o_orderstatus').filter(
                 col('o_orderstatus') == 'F')
+=======
+            forder = orders.select('o_orderkey', 'o_orderstatus').filter(col('o_orderstatus') == 'F')
+>>>>>>> 781dff8 (add validation)
 
             outcome = nation.filter(col('n_name') == 'SAUDI ARABIA').join(
                 fsupplier, col('n_nationkey') == fsupplier.s_nationkey).join(
