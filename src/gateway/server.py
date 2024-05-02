@@ -280,8 +280,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                         response.pairs.add(key=key, value=str(len(self._statistics.plans)))
                     elif key.startswith('spark-substrait-gateway.plan.'):
                         index = int(key[len('spark-substrait-gateway.plan.'):])
-                        if 0 <= index-1 < len(self._statistics.plans):
-                            response.pairs.add(key=key, value=self._statistics.plans[index-1])
+                        if 0 <= index - 1 < len(self._statistics.plans):
+                            response.pairs.add(key=key, value=self._statistics.plans[index - 1])
                     else:
                         raise NotImplementedError(f'Unknown config item: {key}')
             case 'get_with_default':

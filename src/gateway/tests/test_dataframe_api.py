@@ -7,6 +7,8 @@ from pyspark import Row
 from pyspark.sql.functions import col, substring
 from pyspark.testing import assertDataFrameEqual
 
+from gateway.tests.plan_validator import utilizes_valid_plans
+
 
 @pytest.fixture(autouse=True)
 def mark_dataframe_tests_as_xfail(request):
@@ -35,12 +37,16 @@ class TestDataFrameAPI:
     """Tests of the dataframe side of SparkConnect."""
 
     def test_collect(self, users_dataframe):
-        outcome = users_dataframe.collect()
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.collect()
+
         assert len(outcome) == 100
 
     # pylint: disable=singleton-comparison
     def test_filter(self, users_dataframe):
-        outcome = users_dataframe.filter(col('paid_for_service') == True).collect()
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.filter(col('paid_for_service') == True).collect()
+
         assert len(outcome) == 29
 
     # pylint: disable=singleton-comparison
@@ -53,8 +59,10 @@ class TestDataFrameAPI:
 +-------------+---------------+----------------+
 
 '''
-        users_dataframe.filter(col('paid_for_service') == True).limit(2).show()
-        outcome = capsys.readouterr().out
+        with utilizes_valid_plans(users_dataframe):
+            users_dataframe.filter(col('paid_for_service') == True).limit(2).show()
+            outcome = capsys.readouterr().out
+
         assert_that(outcome, equal_to(expected))
 
     # pylint: disable=singleton-comparison
@@ -67,8 +75,10 @@ class TestDataFrameAPI:
 only showing top 1 row
 
 '''
-        users_dataframe.filter(col('paid_for_service') == True).show(1)
-        outcome = capsys.readouterr().out
+        with utilizes_valid_plans(users_dataframe):
+            users_dataframe.filter(col('paid_for_service') == True).show(1)
+            outcome = capsys.readouterr().out
+
         assert_that(outcome, equal_to(expected))
 
     # pylint: disable=singleton-comparison
@@ -85,7 +95,9 @@ only showing top 1 row
         assert_that(outcome, equal_to(expected))
 
     def test_count(self, users_dataframe):
-        outcome = users_dataframe.count()
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.count()
+
         assert outcome == 100
 
     def test_limit(self, users_dataframe):
@@ -93,24 +105,32 @@ only showing top 1 row
             Row(user_id='user849118289', name='Brooke Jones', paid_for_service=False),
             Row(user_id='user954079192', name='Collin Frank', paid_for_service=False),
         ]
-        outcome = users_dataframe.limit(2).collect()
+
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.limit(2).collect()
+
         assertDataFrameEqual(outcome, expected)
 
     def test_with_column(self, users_dataframe):
         expected = [
             Row(user_id='user849118289', name='Brooke Jones', paid_for_service=False),
         ]
-        outcome = users_dataframe.withColumn(
-            'user_id', col('user_id')).limit(1).collect()
+
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.withColumn('user_id', col('user_id')).limit(1).collect()
+
         assertDataFrameEqual(outcome, expected)
 
     def test_cast(self, users_dataframe):
         expected = [
             Row(user_id=849, name='Brooke Jones', paid_for_service=False),
         ]
-        outcome = users_dataframe.withColumn(
-            'user_id',
-            substring(col('user_id'), 5, 3).cast('integer')).limit(1).collect()
+
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.withColumn(
+                'user_id',
+                substring(col('user_id'), 5, 3).cast('integer')).limit(1).collect()
+
         assertDataFrameEqual(outcome, expected)
 
     def test_data_source_schema(self, spark_session):

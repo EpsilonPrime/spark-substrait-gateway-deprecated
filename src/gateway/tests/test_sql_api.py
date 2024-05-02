@@ -7,6 +7,8 @@ from hamcrest import assert_that, equal_to
 from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
+from gateway.tests.plan_validator import utilizes_valid_plans
+
 test_case_directory = Path(__file__).resolve().parent / 'data'
 
 sql_test_case_paths = [f for f in sorted(test_case_directory.iterdir()) if f.suffix == '.sql']
@@ -62,8 +64,10 @@ class TestSqlAPI:
     """Tests of the SQL side of SparkConnect."""
 
     def test_count(self, spark_session_with_tpch_dataset):
-        outcome = spark_session_with_tpch_dataset.sql(
-            'SELECT COUNT(*) FROM customer').collect()
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            outcome = spark_session_with_tpch_dataset.sql(
+                'SELECT COUNT(*) FROM customer').collect()
+
         assert_that(outcome[0][0], equal_to(149999))
 
     def test_limit(self, spark_session_with_tpch_dataset):
@@ -74,8 +78,11 @@ class TestSqlAPI:
             Row(c_custkey=5, c_phone='13-750-942-6364', c_mktsegment='HOUSEHOLD'),
             Row(c_custkey=6, c_phone='30-114-968-4951', c_mktsegment='AUTOMOBILE'),
         ]
-        outcome = spark_session_with_tpch_dataset.sql(
-            'SELECT c_custkey, c_phone, c_mktsegment FROM customer LIMIT 5').collect()
+
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            outcome = spark_session_with_tpch_dataset.sql(
+                'SELECT c_custkey, c_phone, c_mktsegment FROM customer LIMIT 5').collect()
+
         assertDataFrameEqual(outcome, expected)
 
     @pytest.mark.timeout(60)
@@ -90,4 +97,6 @@ class TestSqlAPI:
         with open(path, "rb") as file:
             sql_bytes = file.read()
         sql = sql_bytes.decode('utf-8')
-        spark_session_with_tpch_dataset.sql(sql).collect()
+
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            spark_session_with_tpch_dataset.sql(sql).collect()
