@@ -91,6 +91,7 @@ def schema_users():
 
 @pytest.fixture(scope='session',
                 params=['spark',
+                        'gateway-over-arrow',
                         'gateway-over-duckdb',
                         'gateway-over-datafusion',
                         ])
