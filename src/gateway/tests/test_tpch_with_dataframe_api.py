@@ -430,13 +430,13 @@ class TestTpchWithDataFrameAPI:
                 (col('l_commitdate') < col('l_receiptdate')) &
                 (col('l_shipdate') < col('l_commitdate')) &
                 (col('l_receiptdate') >= '1994-01-01') & (
-                            col('l_receiptdate') < '1995-01-01')).join(
+                        col('l_receiptdate') < '1995-01-01')).join(
                 orders,
                 col('l_orderkey') == orders.o_orderkey).select(
                 'l_shipmode', 'o_orderpriority').groupBy('l_shipmode').agg(
                 count(
                     when((col('o_orderpriority') != '1-URGENT') & (
-                                col('o_orderpriority') != '2-HIGH'),
+                            col('o_orderpriority') != '2-HIGH'),
                          True)).alias('low_line_count'))
 
             sorted_outcome = outcome.sort('l_shipmode').collect()
