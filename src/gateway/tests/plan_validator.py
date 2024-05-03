@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import pytest
 import substrait_validator
 from google.protobuf import json_format
+from pyspark.errors.exceptions.connect import SparkConnectGrpcException
 from substrait.gen.proto import plan_pb2
 
 
@@ -28,19 +29,20 @@ def utilizes_valid_plans(session):
     # Reset the statistics, so we only see the plans that were created during our lifetime.
     if session.conf.get('spark-substrait-gateway.backend', 'spark') != 'spark':
         session.conf.set('spark-substrait-gateway.reset_statistics', None)
-    yield
+    try:
+        exception = None
+        yield
+    except SparkConnectGrpcException as e:
+        exception = e
     if session.conf.get('spark-substrait-gateway.backend', 'spark') == 'spark':
         return
     plan_count = int(session.conf.get('spark-substrait-gateway.plan_count'))
+    first_plan = None
     for i in range(plan_count):
         plan = session.conf.get(f'spark-substrait-gateway.plan.{i + 1}')
+        if first_plan is None:
+            first_plan = plan
         validate_plan(plan)
-
-
-def dump_plans(session, printer):
-    if session.conf.get('spark-substrait-gateway.backend', 'spark') == 'spark':
-        return
-    plan_count = int(session.conf.get('spark-substrait-gateway.plan_count'))
-    for i in range(plan_count):
-        plan = session.conf.get(f'spark-substrait-gateway.plan.{i + 1}')
-        printer(f'Plan {i + 1}:\n{plan}\n')
+    if exception:
+        pytest.fail(f'Exception raised during plan validation: {exception.message}\n\n'
+                    f'First Plan:\n{first_plan}\n', pytrace=False)
