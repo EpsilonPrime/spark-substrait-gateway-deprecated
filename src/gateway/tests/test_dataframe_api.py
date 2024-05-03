@@ -8,8 +8,6 @@ from pyspark import Row
 from pyspark.sql.functions import col, substring
 from pyspark.testing import assertDataFrameEqual
 
-from gateway.tests.plan_validator import utilizes_valid_plans
-
 
 @pytest.fixture(autouse=True)
 def mark_dataframe_tests_as_xfail(request):
