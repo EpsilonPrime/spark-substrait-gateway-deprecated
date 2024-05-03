@@ -15,7 +15,8 @@ def validate_plan(json_plan: str):
             issues.append(issue.msg)
     if issues:
         issues_as_text = '\n'.join(f'  → {issue}' for issue in issues)
-        pytest.fail(f'Validation failed.  Issues:\n{issues_as_text}\n\nPlan:\n{substrait_plan}\n')
+        pytest.fail(f'Validation failed.  Issues:\n{issues_as_text}\n\nPlan:\n{substrait_plan}\n',
+                    pytrace=False)
 
 
 @contextmanager

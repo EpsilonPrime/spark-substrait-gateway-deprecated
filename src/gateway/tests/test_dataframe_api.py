@@ -2,12 +2,11 @@
 """Tests for the Spark to Substrait Gateway server."""
 import pytest
 from gateway.backends.backend import Backend
+from gateway.tests.plan_validator import utilizes_valid_plans
 from hamcrest import assert_that, equal_to
 from pyspark import Row
 from pyspark.sql.functions import col, substring
 from pyspark.testing import assertDataFrameEqual
-
-from gateway.tests.plan_validator import utilizes_valid_plans
 
 
 @pytest.fixture(autouse=True)
