@@ -140,7 +140,10 @@ only showing top 1 row
 
     def test_data_source_schema(self, spark_session):
         location_customer = str(find_tpch() / 'customer')
-        schema = spark_session.read.parquet(location_customer).schema
+
+        with utilizes_valid_plans(spark_session):
+            schema = spark_session.read.parquet(location_customer).schema
+
         assert len(schema) == 8
 
     def test_data_source_filter(self, spark_session):
@@ -148,6 +151,7 @@ only showing top 1 row
         customer_dataframe = spark_session.read.parquet(location_customer)
 
         with utilizes_valid_plans(spark_session):
+            customer_dataframe = spark_session.read.parquet(location_customer)
             outcome = customer_dataframe.filter(col('c_mktsegment') == 'FURNITURE').collect()
 
         assert len(outcome) == 29968
