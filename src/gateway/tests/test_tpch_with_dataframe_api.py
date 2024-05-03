@@ -15,12 +15,15 @@ def mark_tests_as_xfail(request):
     """Marks a subset of tests as expected to be fail."""
     source = request.getfixturevalue('source')
     originalname = request.keywords.node.originalname
-    if source == 'gateway-over-duckdb' and originalname in [
-        'test_query_02', 'test_query_03', 'test_query_04', 'test_query_05', 'test_query_07',
-        'test_query_08', 'test_query_09', 'test_query_10', 'test_query_11', 'test_query_12',
-        'test_query_13', 'test_query_14', 'test_query_15', 'test_query_16', 'test_query_17',
-        'test_query_18', 'test_query_19', 'test_query_20', 'test_query_21', 'test_query_22']:
-        request.node.add_marker(pytest.mark.xfail(reason='DuckDB binder error'))
+    if source == 'gateway-over-duckdb':
+        if originalname in [
+            'test_query_02', 'test_query_03', 'test_query_04', 'test_query_05', 'test_query_07',
+            'test_query_08', 'test_query_09', 'test_query_10', 'test_query_11', 'test_query_12',
+            'test_query_13', 'test_query_14', 'test_query_15', 'test_query_16', 'test_query_17',
+            'test_query_18', 'test_query_19', 'test_query_20', 'test_query_21', 'test_query_22']:
+            request.node.add_marker(pytest.mark.xfail(reason='DuckDB binder error'))
+        if originalname in ['test_query_01']:
+            request.node.add_marker(pytest.mark.xfail(reason='too few field names'))
     if source == 'gateway-over-datafusion':
         pytest.importorskip("datafusion.substrait")
         request.node.add_marker(pytest.mark.xfail(reason='gateway internal error'))
@@ -417,17 +420,17 @@ class TestTpchWithDataFrameAPI:
                 (col('l_commitdate') < col('l_receiptdate')) &
                 (col('l_shipdate') < col('l_commitdate')) &
                 (col('l_receiptdate') >= '1994-01-01') & (
-                            col('l_receiptdate') < '1995-01-01')).join(
+                        col('l_receiptdate') < '1995-01-01')).join(
                 orders,
                 col('l_orderkey') == orders.o_orderkey).select(
                 'l_shipmode', 'o_orderpriority').groupBy('l_shipmode').agg(
                 count(
                     when((col('o_orderpriority') == '1-URGENT') | (
-                                col('o_orderpriority') == '2-HIGH'),
+                            col('o_orderpriority') == '2-HIGH'),
                          True)).alias('high_line_count'),
                 count(
                     when((col('o_orderpriority') != '1-URGENT') & (
-                                col('o_orderpriority') != '2-HIGH'),
+                            col('o_orderpriority') != '2-HIGH'),
                          True)).alias('low_line_count'))
 
             sorted_outcome = outcome.sort('l_shipmode').collect()

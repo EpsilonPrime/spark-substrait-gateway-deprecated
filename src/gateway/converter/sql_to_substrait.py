@@ -20,6 +20,7 @@ def convert_sql(sql: str, backend=None) -> plan_pb2.Plan:
     proto_bytes = connection.get_substrait(query=sql).fetchone()[0]
     plan.ParseFromString(proto_bytes)
 
+    # TODO -- Remove this after the SQL converter is fixed.
     AddExtensionUris().visit_plan(plan)
 
     return plan
