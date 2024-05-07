@@ -610,7 +610,18 @@ class SparkSubstraitConverter:
                 case _:
                     raise NotImplementedError(f'Unexpected file format: {rel.format}')
             local.items.append(file_or_files)
-        return algebra_pb2.Rel(read=algebra_pb2.ReadRel(base_schema=schema, local_files=local))
+        result = algebra_pb2.Rel(read=algebra_pb2.ReadRel(base_schema=schema, local_files=local))
+        if not self._conversion_options.safety_project_read_relations:
+            return result
+
+        project = algebra_pb2.ProjectRel(
+            input=result,
+            common=algebra_pb2.RelCommon(direct=algebra_pb2.RelCommon.Direct()))
+        for field_number in range(len(symbol.output_fields)):
+            project.expressions.append(field_reference(field_number))
+            project.common.emit.output_mapping.append(field_number)
+
+        return algebra_pb2.Rel(project=project)
 
     def create_common_relation(self, emit_overrides=None) -> algebra_pb2.RelCommon:
         """Create the common metadata relation used by all relations."""
@@ -637,7 +648,8 @@ class SparkSubstraitConverter:
                 result = self.convert_read_data_source_relation(rel.data_source)
             case _:
                 raise ValueError(f'Unexpected read type: {rel.WhichOneof("read_type")}')
-        result.read.common.CopyFrom(self.create_common_relation())
+        if result.WhichOneof('rel_type') == 'read':
+            result.read.common.CopyFrom(self.create_common_relation())
         return result
 
     def convert_filter_relation(self, rel: spark_relations_pb2.Filter) -> algebra_pb2.Rel:
