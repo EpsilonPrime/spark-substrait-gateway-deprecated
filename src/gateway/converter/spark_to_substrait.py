@@ -472,7 +472,8 @@ class SparkSubstraitConverter:
         return algebra_pb2.Rel(
             read=algebra_pb2.ReadRel(
                 base_schema=schema,
-                named_table=algebra_pb2.ReadRel.NamedTable(names=[table_name])))
+                named_table=algebra_pb2.ReadRel.NamedTable(names=[table_name]),
+                common=self.create_common_relation()))
 
     def convert_schema(self, schema_str: str) -> type_pb2.NamedStruct | None:
         """Convert the Spark JSON schema string into a Substrait named type structure."""
@@ -575,7 +576,8 @@ class SparkSubstraitConverter:
             return algebra_pb2.Rel(
                 read=algebra_pb2.ReadRel(base_schema=schema,
                                          named_table=algebra_pb2.ReadRel.NamedTable(
-                                             names=['demotable'])))
+                                             names=['demotable']),
+                                         common=self.create_common_relation()))
         if pathlib.Path(rel.paths[0]).is_dir():
             file_paths = glob.glob(f'{rel.paths[0]}/*{rel.format}')
         else:
@@ -610,7 +612,8 @@ class SparkSubstraitConverter:
                 case _:
                     raise NotImplementedError(f'Unexpected file format: {rel.format}')
             local.items.append(file_or_files)
-        result = algebra_pb2.Rel(read=algebra_pb2.ReadRel(base_schema=schema, local_files=local))
+        result = algebra_pb2.Rel(read=algebra_pb2.ReadRel(base_schema=schema, local_files=local,
+                                                          common=self.create_common_relation()))
         if not self._conversion_options.safety_project_read_relations:
             return result
 
@@ -648,8 +651,6 @@ class SparkSubstraitConverter:
                 result = self.convert_read_data_source_relation(rel.data_source)
             case _:
                 raise ValueError(f'Unexpected read type: {rel.WhichOneof("read_type")}')
-        if result.WhichOneof('rel_type') == 'read':
-            result.read.common.CopyFrom(self.create_common_relation())
         return result
 
     def convert_filter_relation(self, rel: spark_relations_pb2.Filter) -> algebra_pb2.Rel:
