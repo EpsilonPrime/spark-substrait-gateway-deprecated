@@ -459,6 +459,7 @@ class SparkSubstraitConverter:
         table_name = rel.unparsed_identifier
 
         arrow_schema = self._backend.describe_table(table_name)
+
         schema = self.convert_arrow_schema(arrow_schema)
 
         symbol = self._symbol_table.get_symbol(self._current_plan_id)

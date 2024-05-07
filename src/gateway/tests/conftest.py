@@ -78,13 +78,13 @@ def gateway_server():
 
 
 @pytest.fixture(scope='function')
-def users_location() -> str:
+def users_location(manage_database) -> str:
     """Provides the location of the users database."""
     return str(Path('users.parquet').resolve())
 
 
 @pytest.fixture(scope='function')
-def schema_users():
+def schema_users(manage_database):
     """Provides the schema of the users database."""
     return get_mystream_schema('users')
 
@@ -121,9 +121,10 @@ def spark_session(source):
 @pytest.fixture(scope='function')
 def users_dataframe(spark_session, schema_users, users_location):
     """Provides a ready to go dataframe over the users database."""
-    return spark_session.read.format('parquet') \
-        .schema(from_arrow_schema(schema_users)) \
-        .parquet(users_location)
+    #return spark_session.read.format('parquet') \
+    #    .schema(from_arrow_schema(schema_users)) \
+    #    .parquet(users_location)
+    return spark_session.table('users')
 
 
 def find_tpch() -> Path:
