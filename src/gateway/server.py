@@ -14,6 +14,7 @@ from pyspark.sql.connect.proto import types_pb2
 from substrait.gen.proto import algebra_pb2, plan_pb2
 
 from gateway.backends import backend_selector
+from gateway.backends.backend_options import BackendOptions
 from gateway.backends.backend_selector import find_backend
 from gateway.converter.conversion_options import arrow, datafusion, duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
@@ -187,6 +188,9 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                         raise NotImplementedError(f'Unsupported command type: {type}')
             case _:
                 raise ValueError(f'Unknown plan type: {request.plan}')
+        # Stop the ExecutePlan if the sql command is a CREATE TABLE statement.
+        if "CREATE" in request.plan.command.sql_command.sql:
+            return
         _LOGGER.debug('  as Substrait: %s', substrait)
         # TODO: Register the TPCH data for datafusion through the fixture.
         if isinstance(self._backend, backend_selector.DatafusionBackend):
