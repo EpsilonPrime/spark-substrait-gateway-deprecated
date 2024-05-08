@@ -14,7 +14,7 @@ def convert_sql(sql: str, backend=None) -> plan_pb2.Plan:
     if "CREATE" in sql:
         connection = backend.get_connection()
         connection.execute(sql)
-        return None
+        return 1
 
     backend = backend_selector.find_backend(BackendOptions(Backend.DUCKDB, False))
     backend.register_tpch()
