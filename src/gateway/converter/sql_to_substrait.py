@@ -10,12 +10,6 @@ def convert_sql(sql: str) -> plan_pb2.Plan:
     """Convert SQL into a Substrait plan."""
     plan = plan_pb2.Plan()
 
-    # If the SQL is a CREATE statement, use the backend to create the table.
-    if "CREATE" in sql:
-        connection = backend.get_connection()
-        connection.execute(sql)
-        return 1
-
     backend = backend_selector.find_backend(BackendOptions(Backend.DUCKDB, False))
     backend.register_tpch()
     connection = backend.get_connection()
