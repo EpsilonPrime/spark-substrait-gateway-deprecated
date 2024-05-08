@@ -145,21 +145,12 @@ def _register_table(spark_session: SparkSession, source: str, name: str) -> None
 @pytest.fixture(scope='function')
 def spark_session_with_tpch_dataset(spark_session: SparkSession, source: str) -> SparkSession:
     """Add the TPC-H dataset to the current spark session."""
-    if source in ['spark', 'gateway-over-duckdb', 'gateway-over-datafusion']:
-        _register_table(spark_session, source, 'customer')
-        _register_table(spark_session, source, 'lineitem')
-        _register_table(spark_session, source, 'nation')
-        _register_table(spark_session, source, 'orders')
-        _register_table(spark_session, source, 'part')
-        _register_table(spark_session, source, 'partsupp')
-        _register_table(spark_session, source, 'region')
-        _register_table(spark_session, source, 'supplier')
-    return spark_session
-
-
-@pytest.fixture(scope='function')
-def spark_session_with_customer_dataset(spark_session: SparkSession, source: str) -> SparkSession:
-    """Add the TPC-H dataset to the current spark session."""
-    if source in ['spark', 'gateway-over-duckdb']:
-        _register_table(spark_session, source, 'customer')
+    _register_table(spark_session, source, 'customer')
+    _register_table(spark_session, source, 'lineitem')
+    _register_table(spark_session, source, 'nation')
+    _register_table(spark_session, source, 'orders')
+    _register_table(spark_session, source, 'part')
+    _register_table(spark_session, source, 'partsupp')
+    _register_table(spark_session, source, 'region')
+    _register_table(spark_session, source, 'supplier')
     return spark_session
