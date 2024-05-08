@@ -145,8 +145,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         """Initialize the SparkConnect service."""
         # This is the central point for configuring the behavior of the service.
         self._options = duck_db()
-        self._backend_with_tempview = None
-        self._tempview_session_id = None
+        self._backend = None
         self._converter = None
         self._statistics = Statistics()
 
@@ -157,11 +156,11 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         self._statistics.execute_requests += 1
         self._statistics.add_request(request)
         _LOGGER.info('ExecutePlan: %s', request)
-        if not self._backend_with_tempview:
-            self._backend_with_tempview = find_backend(self._options.backend)
+        if not self._backend:
+            self._backend = find_backend(self._options.backend)
         if not self._converter:
             self._converter = SparkSubstraitConverter(self._options)
-            self._converter.set_tempview_backend(self._backend_with_tempview)
+            self._converter.set_backend(self._backend)
         match request.plan.WhichOneof('op_type'):
             case 'root':
 
@@ -170,12 +169,11 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                 match request.plan.command.WhichOneof('command_type'):
                     case 'sql_command':
                         substrait = convert_sql(request.plan.command.sql_command.sql,
-                                                self._backend_with_tempview)
+                                                self._backend)
                     case 'create_dataframe_view':
-                        self._backend_with_tempview = create_dataframe_view(
-                            request.plan, self._options, self._backend_with_tempview)
-                        self._tempview_session_id = request.session_id
-                        self._converter.set_tempview_backend(self._backend_with_tempview)
+                        self._backend = create_dataframe_view(
+                            request.plan, self._options, self._backend)
+                        self._converter.set_backend(self._backend)
 
                         return
                     case _:
@@ -188,10 +186,10 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
             return
         _LOGGER.debug('  as Substrait: %s', substrait)
         # TODO: Register the TPCH data for datafusion through the fixture.
-        if isinstance(self._backend_with_tempview, backend_selector.DatafusionBackend):
-            self._backend_with_tempview.register_tpch()
+        if isinstance(self._backend, backend_selector.DatafusionBackend):
+            self._backend.register_tpch()
         self._statistics.add_plan(substrait)
-        results = self._backend_with_tempview.execute(substrait)
+        results = self._backend.execute(substrait)
         _LOGGER.debug('  results are: %s', results)
 
         if not self._options.implement_show_string and request.plan.WhichOneof(
@@ -231,18 +229,18 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         self._statistics.analyze_requests += 1
         self._statistics.add_request(request)
         _LOGGER.info('AnalyzePlan: %s', request)
-        if not self._backend_with_tempview:
-            self._backend_with_tempview = find_backend(self._options.backend)
+        if not self._backend:
+            self._backend = find_backend(self._options.backend)
         if request.schema:
             if not self._converter:
                 self._converter = SparkSubstraitConverter(self._options)
-                self._converter.set_tempview_backend(self._backend_with_tempview)
+                self._converter.set_backend(self._backend)
             substrait = self._converter.convert_plan(request.schema.plan)
             # TODO: Register the TPCH data for datafusion through the fixture.
-            if isinstance(self._backend_with_tempview, backend_selector.DatafusionBackend):
-                self._backend_with_tempview.register_tpch()
+            if isinstance(self._backend, backend_selector.DatafusionBackend):
+                self._backend.register_tpch()
             self._statistics.add_plan(substrait)
-            results = self._backend_with_tempview.execute(substrait)
+            results = self._backend.execute(substrait)
             _LOGGER.debug('  results are: %s', results)
             return pb2.AnalyzePlanResponse(
                 session_id=request.session_id,

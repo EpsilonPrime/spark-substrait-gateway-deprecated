@@ -62,11 +62,11 @@ class SparkSubstraitConverter:
         self._seen_generated_names = {}
         self._saved_extension_uris = {}
         self._saved_extensions = {}
-        self._backend_with_tempview = None
+        self._backend = None
 
-    def set_tempview_backend(self, backend) -> None:
+    def set_backend(self, backend) -> None:
         """Save the backend being used to create the temporary dataframe."""
-        self._backend_with_tempview = backend
+        self._backend = backend
 
     def lookup_function_by_name(self, name: str) -> ExtensionFunction:
         """Find the function reference for a given Spark function name."""
@@ -993,7 +993,7 @@ class SparkSubstraitConverter:
     def convert_sql_relation(self, rel: spark_relations_pb2.SQL) -> algebra_pb2.Rel:
         """Convert a Spark SQL relation into a Substrait relation."""
         # TODO -- Handle multithreading in the case with a persistent backend.
-        plan = convert_sql(rel.query, self._backend_with_tempview)
+        plan = convert_sql(rel.query, self._backend )
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for field_name in plan.relations[0].root.names:
             symbol.output_fields.append(field_name)
