@@ -163,7 +163,6 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
             self._converter.set_backend(self._backend)
         match request.plan.WhichOneof('op_type'):
             case 'root':
-
                 substrait = self._converter.convert_plan(request.plan)
             case 'command':
                 match request.plan.command.WhichOneof('command_type'):
@@ -171,10 +170,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                         substrait = convert_sql(request.plan.command.sql_command.sql,
                                                 self._backend)
                     case 'create_dataframe_view':
-                        self._backend = create_dataframe_view(
-                            request.plan, self._options, self._backend)
-                        self._converter.set_backend(self._backend)
-
+                        create_dataframe_view(request.plan, self._options, self._backend)
                         return
                     case _:
                         type = request.plan.command.WhichOneof("command_type")
