@@ -18,11 +18,12 @@ class ConversionOptions:
         self.use_switch_expressions_where_possible = True
         self.use_duckdb_regexp_matches_function = False
         self.duckdb_project_emit_workaround = False
+        self.duckdb_project_workaround = False
         self.safety_project_read_relations = False
 
         self.return_names_with_types = False
 
-        self.implement_show_string = True
+        self.implement_show_string = False  # MEGAHACK -- Make True again
 
         self.backend = backend
 

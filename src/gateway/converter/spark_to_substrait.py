@@ -1052,6 +1052,9 @@ class SparkSubstraitConverter:
         project = algebra_pb2.ProjectRel(input=input_rel)
         self.update_field_references(rel.input.common.plan_id)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        if self._conversion_options.duckdb_project_workaround:
+            for field_number in range(len(symbol.input_fields)):
+                project.expressions.append(field_reference(field_number))
         for field_number, expr in enumerate(rel.expressions):
             project.expressions.append(self.convert_expression(expr))
             if expr.HasField('alias'):
@@ -1061,6 +1064,11 @@ class SparkSubstraitConverter:
             symbol.generated_fields.append(name)
             symbol.output_fields.append(name)
         project.common.CopyFrom(self.create_common_relation())
+        if self._conversion_options.duckdb_project_workaround:
+            for field_number in range(len(symbol.input_fields)):
+                project.common.emit.output_mapping.append(field_number + len(symbol.input_fields))
+        for field_number, _ in enumerate(rel.expressions):
+            project.common.emit.output_mapping.append(field_number + len(symbol.input_fields) * 2)
         return algebra_pb2.Rel(project=project)
 
     def convert_subquery_alias_relation(self,
