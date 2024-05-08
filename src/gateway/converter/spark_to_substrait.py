@@ -993,7 +993,7 @@ class SparkSubstraitConverter:
     def convert_sql_relation(self, rel: spark_relations_pb2.SQL) -> algebra_pb2.Rel:
         """Convert a Spark SQL relation into a Substrait relation."""
         # TODO -- Handle multithreading in the case with a persistent backend.
-        plan = convert_sql(rel.query, self._backend )
+        plan = convert_sql(rel.query)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for field_name in plan.relations[0].root.names:
             symbol.output_fields.append(field_name)

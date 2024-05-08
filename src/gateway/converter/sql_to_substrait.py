@@ -6,15 +6,9 @@ from gateway.converter.add_extension_uris import AddExtensionUris
 from substrait.gen.proto import plan_pb2
 
 
-def convert_sql(sql: str, backend=None) -> plan_pb2.Plan:
+def convert_sql(sql: str) -> plan_pb2.Plan:
     """Convert SQL into a Substrait plan."""
     plan = plan_pb2.Plan()
-
-    # If the SQL is a CREATE statement, use the backend to create the table.
-    if "CREATE" in sql:
-        connection = backend.get_connection()
-        connection.execute(sql)
-        return 1
 
     backend = backend_selector.find_backend(BackendOptions(Backend.DUCKDB, False))
     backend.register_tpch()
