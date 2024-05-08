@@ -11,8 +11,7 @@ import pyspark.sql.connect.proto.base_pb2 as pb2
 import pyspark.sql.connect.proto.base_pb2_grpc as pb2_grpc
 from google.protobuf.json_format import MessageToJson
 from pyspark.sql.connect.proto import types_pb2
-from substrait.gen.proto import algebra_pb2
-from substrait.gen.proto import plan_pb2
+from substrait.gen.proto import algebra_pb2, plan_pb2
 
 from gateway.backends.backend_options import BackendOptions
 from gateway.backends.backend_selector import find_backend
