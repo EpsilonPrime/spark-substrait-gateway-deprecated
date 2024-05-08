@@ -189,8 +189,6 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
             case _:
                 raise ValueError(f'Unknown plan type: {request.plan}')
         # Stop the ExecutePlan if the sql command is a CREATE TABLE statement.
-        if "CREATE" in request.plan.command.sql_command.sql:
-            return
         _LOGGER.debug('  as Substrait: %s', substrait)
         # TODO: Register the TPCH data for datafusion through the fixture.
         if isinstance(self._backend, backend_selector.DatafusionBackend):
