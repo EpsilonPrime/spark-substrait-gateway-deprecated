@@ -723,6 +723,10 @@ class SparkSubstraitConverter:
             symbol.generated_fields.append(self.determine_expression_name(expr))
         symbol.output_fields.clear()
         symbol.output_fields.extend(symbol.generated_fields)
+        if len(rel.grouping_expressions) > 1:
+            # Hide the grouping source from the downstream relations.
+            for i in range(len(rel.grouping_expressions) + len(rel.aggregate_expressions)):
+                aggregate.common.emit.output_mapping.append(i)
         return algebra_pb2.Rel(aggregate=aggregate)
 
     # pylint: disable=too-many-locals,pointless-string-statement

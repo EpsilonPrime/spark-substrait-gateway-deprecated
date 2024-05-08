@@ -22,8 +22,6 @@ def mark_tests_as_xfail(request):
             'test_query_13', 'test_query_14', 'test_query_15', 'test_query_16', 'test_query_17',
             'test_query_18', 'test_query_19', 'test_query_20', 'test_query_21', 'test_query_22']:
             request.node.add_marker(pytest.mark.xfail(reason='DuckDB binder error'))
-        if originalname in ['test_query_01']:
-            request.node.add_marker(pytest.mark.xfail(reason='too few field names'))
     if source == 'gateway-over-datafusion':
         pytest.importorskip("datafusion.substrait")
         request.node.add_marker(pytest.mark.xfail(reason='gateway internal error'))
