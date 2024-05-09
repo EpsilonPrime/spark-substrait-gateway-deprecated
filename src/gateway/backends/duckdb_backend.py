@@ -78,5 +78,8 @@ class DuckDBBackend(Backend):
 
         fields = []
         for name, field_type in zip(result.columns, result.types, strict=False):
+            if name == 'aggr':
+                # This isn't a real column.
+                continue
             fields.append(pa.field(name, _DUCKDB_TO_ARROW[str(field_type)]))
         return pa.schema(fields)
