@@ -8,6 +8,19 @@ from substrait.gen.proto import plan_pb2
 
 from gateway.backends.backend import Backend
 
+_DUCKDB_TO_ARROW = {
+    'BOOLEAN': pa.bool_(),
+    'TINYINT': pa.int8(),
+    'SMALLINT': pa.int16(),
+    'INTEGER': pa.int32(),
+    'BIGINT': pa.int64(),
+    'FLOAT': pa.float32(),
+    'DOUBLE': pa.float64(),
+    'DATE': pa.date32(),
+    'TIMESTAMP': pa.timestamp('ns'),
+    'VARCHAR': pa.string(),
+}
+
 
 # pylint: disable=fixme
 class DuckDBBackend(Backend):
@@ -63,20 +76,7 @@ class DuckDBBackend(Backend):
         """Asks the backend to describe the given table."""
         result = self._connection.table(name).describe()
 
-        duckdb_to_arrow = {
-            'BOOLEAN': pa.bool_(),
-            'TINYINT': pa.int8(),
-            'SMALLINT': pa.int16(),
-            'INTEGER': pa.int32(),
-            'BIGINT': pa.int64(),
-            'FLOAT': pa.float32(),
-            'DOUBLE': pa.float64(),
-            'DATE': pa.date32(),
-            'TIMESTAMP': pa.timestamp('ns'),
-            'VARCHAR': pa.string(),
-        }
-
         fields = []
         for name, field_type in zip(result.columns, result.types, strict=False):
-            fields.append(pa.field(name, duckdb_to_arrow[str(field_type)]))
+            fields.append(pa.field(name, _DUCKDB_TO_ARROW[str(field_type)]))
         return pa.schema(fields)
