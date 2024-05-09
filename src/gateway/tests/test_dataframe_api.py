@@ -114,6 +114,16 @@ only showing top 1 row
 
         assertDataFrameEqual(outcome, expected)
 
+    def test_with_column_no_limit(self, users_dataframe):
+        expected = [
+            Row(user_id='user849118289', name='Brooke Jones', paid_for_service=False),
+        ]
+
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.withColumn('user_id', col('user_id')).collect()
+
+        assertDataFrameEqual(outcome, expected)
+
     def test_cast(self, users_dataframe):
         expected = [
             Row(user_id=849, name='Brooke Jones', paid_for_service=False),
