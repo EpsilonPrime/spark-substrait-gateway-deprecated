@@ -4,7 +4,6 @@ from pathlib import Path
 
 import duckdb
 import pyarrow as pa
-from duckdb.typing import DuckDBPyType
 from substrait.gen.proto import plan_pb2
 
 from gateway.backends.backend import Backend
@@ -78,8 +77,6 @@ class DuckDBBackend(Backend):
         }
 
         fields = []
-        for name, field_type in zip(result.columns, result.types):
+        for name, field_type in zip(result.columns, result.types, strict=False):
             fields.append(pa.field(name, duckdb_to_arrow[str(field_type)]))
-        schema = pa.schema(fields)
-
-        return schema
+        return pa.schema(fields)
