@@ -105,6 +105,16 @@ class RenameFunctionsForArrow(SubstraitPlanVisitor):
                 changed = True
                 extension.extension_function.extension_uri_reference = (
                     self._find_arrow_uri_reference(plan))
+            elif name == 'gt':
+                changed = True
+                extension.extension_function.extension_uri_reference = (
+                    self._find_arrow_uri_reference(plan))
+                name = 'greater'
+            elif name == 'lt':
+                changed = True
+                extension.extension_function.extension_uri_reference = (
+                    self._find_arrow_uri_reference(plan))
+                name = 'less'
 
             if not changed:
                 continue
