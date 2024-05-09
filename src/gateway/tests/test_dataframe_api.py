@@ -140,11 +140,16 @@ only showing top 1 row
     def test_data_source_filter(self, spark_session):
         location_customer = str(Backend.find_tpch() / 'customer')
         customer_dataframe = spark_session.read.parquet(location_customer)
-        outcome = customer_dataframe.filter(col('c_mktsegment') == 'FURNITURE').collect()
+
+        with utilizes_valid_plans(spark_session):
+            outcome = customer_dataframe.filter(col('c_mktsegment') == 'FURNITURE').collect()
+
         assert len(outcome) == 29968
 
     def test_table(self, spark_session_with_tpch_dataset):
-        outcome = spark_session_with_tpch_dataset.table('customer').collect()
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            outcome = spark_session_with_tpch_dataset.table('customer').collect()
+
         assert len(outcome) == 149999
 
     def test_table_schema(self, spark_session_with_tpch_dataset):
@@ -153,7 +158,10 @@ only showing top 1 row
 
     def test_table_filter(self, spark_session_with_tpch_dataset):
         customer_dataframe = spark_session_with_tpch_dataset.table('customer')
-        outcome = customer_dataframe.filter(col('c_mktsegment') == 'FURNITURE').collect()
+
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            outcome = customer_dataframe.filter(col('c_mktsegment') == 'FURNITURE').collect()
+
         assert len(outcome) == 29968
 
     def test_create_or_replace_temp_view(self, spark_session):
