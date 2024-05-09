@@ -4,7 +4,6 @@ from pathlib import Path
 
 import duckdb
 import pyarrow as pa
-from duckdb.typing import DuckDBPyType
 from substrait.gen.proto import plan_pb2
 
 from gateway.backends.backend import Backend
