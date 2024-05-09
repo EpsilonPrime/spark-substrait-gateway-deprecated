@@ -4,6 +4,7 @@ from pathlib import Path
 
 import duckdb
 import pyarrow as pa
+from duckdb.typing import DuckDBPyType
 from substrait.gen.proto import plan_pb2
 
 from gateway.backends.backend import Backend
@@ -58,3 +59,27 @@ class DuckDBBackend(Backend):
         files_sql = f"CREATE OR REPLACE TABLE {table_name} AS FROM read_parquet([{files_str}])"
 
         self._connection.execute(files_sql)
+
+    def describe_table(self, name: str):
+        """Asks the backend to describe the given table."""
+        result = self._connection.table(name).describe()
+
+        duckdb_to_arrow = {
+            'BOOLEAN': pa.bool_(),
+            'TINYINT': pa.int8(),
+            'SMALLINT': pa.int16(),
+            'INTEGER': pa.int32(),
+            'BIGINT': pa.int64(),
+            'FLOAT': pa.float32(),
+            'DOUBLE': pa.float64(),
+            'DATE': pa.date32(),
+            'TIMESTAMP': pa.timestamp('ns'),
+            'VARCHAR': pa.string(),
+        }
+
+        fields = []
+        for name, field_type in zip(result.columns, result.types):
+            fields.append(pa.field(name, duckdb_to_arrow[str(field_type)]))
+        schema = pa.schema(fields)
+
+        return schema
