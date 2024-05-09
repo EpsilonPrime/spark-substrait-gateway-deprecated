@@ -10,7 +10,6 @@ from gateway.demo.mystream_database import (
     get_mystream_schema,
 )
 from gateway.server import serve
-from pyspark.sql.pandas.types import from_arrow_schema
 from pyspark.sql.session import SparkSession
 
 

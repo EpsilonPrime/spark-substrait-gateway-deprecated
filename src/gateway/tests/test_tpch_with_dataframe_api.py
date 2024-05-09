@@ -4,9 +4,7 @@ import datetime
 
 import pyspark
 import pytest
-import substrait_validator
 from gateway.tests.plan_validator import utilizes_valid_plans
-from google.protobuf import json_format
 from pyspark import Row
 from pyspark.sql.functions import avg, col, count, countDistinct, desc, try_sum, when
 from pyspark.testing import assertDataFrameEqual
@@ -17,6 +15,7 @@ def mark_tests_as_xfail(request):
     """Marks a subset of tests as expected to be fail."""
     source = request.getfixturevalue('source')
     originalname = request.keywords.node.originalname
+<<<<<<< HEAD
     if source == 'gateway-over-duckdb':
         if originalname in [  'test_query_03', 'test_query_18']:
             request.node.add_marker(pytest.mark.xfail(reason='Date time type mismatch'))
@@ -434,6 +433,10 @@ class TestTpchWithDataFrameAPI:
                 orders,
                 col('l_orderkey') == orders.o_orderkey).select(
                 'l_shipmode', 'o_orderpriority').groupBy('l_shipmode').agg(
+                count(
+                    when((col('o_orderpriority') == '1-URGENT') | (
+                            col('o_orderpriority') == '2-HIGH'),
+                         True)).alias('high_line_count'),
                 count(
                     when((col('o_orderpriority') != '1-URGENT') & (
                             col('o_orderpriority') != '2-HIGH'),
