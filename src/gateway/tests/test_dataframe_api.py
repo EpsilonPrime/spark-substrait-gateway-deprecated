@@ -14,9 +14,7 @@ def mark_dataframe_tests_as_xfail(request):
     """Marks a subset of tests as expected to be fail."""
     source = request.getfixturevalue('source')
     originalname = request.keywords.node.originalname
-    if source == 'gateway-over-duckdb':
-        request.node.add_marker(pytest.mark.xfail(reason='DuckDB column binding error'))
-    elif source == 'gateway-over-datafusion':
+    if source == 'gateway-over-datafusion':
         if originalname in [
             'test_data_source_schema', 'test_data_source_filter', 'test_table', 'test_table_schema',
             'test_table_filter', 'test_create_or_replace_temp_view',
@@ -113,6 +111,16 @@ only showing top 1 row
 
         with utilizes_valid_plans(users_dataframe):
             outcome = users_dataframe.withColumn('user_id', col('user_id')).limit(1).collect()
+
+        assertDataFrameEqual(outcome, expected)
+
+    def test_with_column_no_limit(self, users_dataframe):
+        expected = [
+            Row(user_id='user849118289', name='Brooke Jones', paid_for_service=False),
+        ]
+
+        with utilizes_valid_plans(users_dataframe):
+            outcome = users_dataframe.withColumn('user_id', col('user_id')).collect()
 
         assertDataFrameEqual(outcome, expected)
 
