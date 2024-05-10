@@ -13,7 +13,6 @@ from google.protobuf.json_format import MessageToJson
 from pyspark.sql.connect.proto import types_pb2
 from substrait.gen.proto import algebra_pb2, plan_pb2
 
-from gateway.backends import backend_selector
 from gateway.backends.backend import Backend
 from gateway.backends.backend_options import BackendEngine, BackendOptions
 from gateway.backends.backend_selector import find_backend
