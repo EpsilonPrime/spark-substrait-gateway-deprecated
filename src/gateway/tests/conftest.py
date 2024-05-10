@@ -145,7 +145,6 @@ def _register_table(spark_session: SparkSession, name: str) -> None:
 @pytest.fixture(scope='function')
 def spark_session_with_tpch_dataset(spark_session: SparkSession) -> SparkSession:
     """Add the TPC-H dataset to the current spark session."""
-    # TODO -- Consider moving this fixture to session scope.
     _register_table(spark_session, 'customer')
     _register_table(spark_session, 'lineitem')
     _register_table(spark_session, 'nation')
