@@ -902,43 +902,9 @@ class SparkSubstraitConverter:
         project5.project.common.emit.output_mapping.append(len(symbol.input_fields))
         return project5
 
-    def convert_with_columns_relation_duckdb_workaround(
-            self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
-        """Convert a with columns relation into a Substrait project relation for DuckDB."""
-        input_rel = self.convert_relation(rel.input)
-        project = algebra_pb2.ProjectRel(input=input_rel)
-        self.update_field_references(rel.input.common.plan_id)
-        symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        mapping = list(range(len(symbol.input_fields)))
-        field_number = len(symbol.input_fields)
-        for alias in rel.aliases:
-            if len(alias.name) != 1:
-                raise ValueError('every column alias must have exactly one name')
-            name = alias.name[0]
-            project.expressions.append(self.convert_expression(alias.expr))
-            if name in symbol.input_fields:
-                mapping[symbol.input_fields.index(name)] = len(symbol.input_fields) + (
-                    len(project.expressions)) - 1
-            else:
-                mapping.append(field_number)
-                field_number += 1
-                symbol.generated_fields.append(name)
-                symbol.output_fields.append(name)
-        project.common.CopyFrom(self.create_common_relation())
-        for field_number in range(len(symbol.input_fields)):
-            if field_number == mapping[field_number]:
-                project.expressions.append(field_reference(field_number))
-                mapping[field_number]= len(symbol.input_fields) + (
-                    len(project.expressions)) - 1
-        for item in mapping:
-            project.common.emit.output_mapping.append(item)
-        return algebra_pb2.Rel(project=project)
-
     def convert_with_columns_relation(
             self, rel: spark_relations_pb2.WithColumns) -> algebra_pb2.Rel:
         """Convert a with columns relation into a Substrait project relation."""
-        if self._conversion_options.duckdb_project_emit_workaround:
-            return self.convert_with_columns_relation_duckdb_workaround(rel)
         input_rel = self.convert_relation(rel.input)
         project = algebra_pb2.ProjectRel(input=input_rel)
         self.update_field_references(rel.input.common.plan_id)
@@ -962,6 +928,12 @@ class SparkSubstraitConverter:
                 symbol.output_fields.append(name)
         project.common.CopyFrom(self.create_common_relation())
         if remapped:
+            if self._conversion_options.duckdb_project_emit_workaround:
+                for field_number in range(len(symbol.input_fields)):
+                    if field_number == mapping[field_number]:
+                        project.expressions.append(field_reference(field_number))
+                        mapping[field_number] = len(symbol.input_fields) + (
+                            len(project.expressions)) - 1
             for item in mapping:
                 project.common.emit.output_mapping.append(item)
         return algebra_pb2.Rel(project=project)
