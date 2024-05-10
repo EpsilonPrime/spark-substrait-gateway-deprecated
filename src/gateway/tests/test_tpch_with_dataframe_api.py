@@ -76,13 +76,13 @@ class TestTpchWithDataFrameAPI:
             nation = spark_session_with_tpch_dataset.table('nation')
             region = spark_session_with_tpch_dataset.table('region')
 
-            europe = region.filter(col('r_name') == 'EUROPE').join(
-                nation, col('r_regionkey') == col('n_regionkey')).join(
-                supplier, col('n_nationkey') == col('s_nationkey')).join(
-                partsupp, col('s_suppkey') == col('ps_suppkey'))
+            europe = region.filter(region.r_name == 'EUROPE').join(
+                nation, col('r_regionkey') == nation.n_regionkey).join(
+                supplier, col('n_nationkey') == supplier.s_nationkey).join(
+                partsupp, col('s_suppkey') == partsupp.ps_suppkey)
 
             brass = part.filter((col('p_size') == 15) & (col('p_type').endswith('BRASS'))).join(
-                europe, col('ps_partkey') == col('p_partkey'))
+                europe, col('ps_partkey') == part.p_partkey)
 
             minCost = brass.groupBy(col('ps_partkey')).agg(
                 pyspark.sql.functions.min('ps_supplycost').alias('min'))
