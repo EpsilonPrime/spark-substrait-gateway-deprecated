@@ -43,6 +43,10 @@ class Backend:
         """Asks the backend to drop the given table."""
         raise NotImplementedError()
 
+    def convert_sql(self, sql: str) -> plan_pb2.Plan:
+        """Convert SQL into a Substrait plan."""
+        raise NotImplementedError()
+
     @staticmethod
     def expand_location(location: Path | str) -> list[str]:
         """Expand the location of a file or directory into a list of files."""
@@ -50,7 +54,3 @@ class Backend:
         path = Path(location)
         files = Path(location).resolve().glob('*.parquet') if path.is_dir() else [path]
         return sorted(str(f) for f in files)
-
-    def convert_sql(self, sql: str) -> plan_pb2.Plan:
-        """Convert SQL into a Substrait plan."""
-        raise NotImplementedError()

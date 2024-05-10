@@ -152,6 +152,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         if not self._backend:
             self._backend = find_backend(self._options.backend)
             self._sql_backend = find_backend(BackendOptions(BackendEngine.DUCKDB, False))
+            self._converter = SparkSubstraitConverter(self._options)
+            self._converter.set_backends(self._backend, self._sql_backend)
 
     def ExecutePlan(
             self, request: pb2.ExecutePlanRequest, context: grpc.RpcContext) -> Generator[
@@ -161,12 +163,6 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         self._statistics.add_request(request)
         _LOGGER.info('ExecutePlan: %s', request)
         self._InitializeExecution()
-        # TODO: Register the TPCH data for datafusion through the fixture.
-        if isinstance(self._backend, backend_selector.DatafusionBackend):
-            self._backend.register_tpch()
-        if not self._converter:
-            self._converter = SparkSubstraitConverter(self._options)
-            self._converter.set_backend(self._backend)
         match request.plan.WhichOneof('op_type'):
             case 'root':
                 substrait = self._converter.convert_plan(request.plan)
@@ -242,9 +238,6 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         if isinstance(self._backend, backend_selector.DatafusionBackend):
             self._backend.register_tpch()
         if request.schema:
-            if not self._converter:
-                self._converter = SparkSubstraitConverter(self._options)
-                self._converter.set_backend(self._backend)
             substrait = self._converter.convert_plan(request.schema.plan)
             self._statistics.add_plan(substrait)
             results = self._backend.execute(substrait)

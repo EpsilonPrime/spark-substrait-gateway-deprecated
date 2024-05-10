@@ -9,10 +9,9 @@ from substrait.gen.proto import plan_pb2
 
 def convert_sql(backend: Backend, sql: str) -> plan_pb2.Plan:
     """Convert SQL into a Substrait plan."""
-    plan = plan_pb2.Plan()
-
     plan = backend.convert_sql(sql)
 
+    # Perform varioous fixes to make the plan more compatible.
     # TODO -- Remove this after the SQL converter is fixed.
     AddExtensionUris().visit_plan(plan)
 
