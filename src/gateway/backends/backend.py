@@ -62,14 +62,6 @@ class Backend:
             current_location = current_location.parent
         raise ValueError('TPCH dataset not found')
 
-    def register_tpch(self):
-        """Register the entire TPC-H dataset."""
-        tpch_location = Backend.find_tpch()
-        self.register_table('customer', tpch_location / 'customer')
-        self.register_table('lineitem', tpch_location / 'lineitem')
-        self.register_table('nation', tpch_location / 'nation')
-        self.register_table('orders', tpch_location / 'orders')
-        self.register_table('part', tpch_location / 'part')
-        self.register_table('partsupp', tpch_location / 'partsupp')
-        self.register_table('region', tpch_location / 'region')
-        self.register_table('supplier', tpch_location / 'supplier')
+    def convert_sql(self, sql: str) -> plan_pb2.Plan:
+        """Convert SQL into a Substrait plan."""
+        raise NotImplementedError()

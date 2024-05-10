@@ -13,11 +13,11 @@ from google.protobuf.json_format import MessageToJson
 from pyspark.sql.connect.proto import types_pb2
 from substrait.gen.proto import algebra_pb2, plan_pb2
 
-from gateway.backends import backend_selector
+from gateway.backends.backend import Backend
+from gateway.backends.backend_options import BackendOptions, BackendEngine
 from gateway.backends.backend_selector import find_backend
 from gateway.converter.conversion_options import arrow, datafusion, duck_db
 from gateway.converter.spark_to_substrait import SparkSubstraitConverter
-from gateway.converter.sql_to_substrait import convert_sql
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,7 +142,8 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         """Initialize the SparkConnect service."""
         # This is the central point for configuring the behavior of the service.
         self._options = duck_db()
-        self._backend = None
+        self._backend: Backend | None = None
+        self._sql_backend: Backend | None = None
         self._converter = None
         self._statistics = Statistics()
 
@@ -150,6 +151,7 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         """Initialize the execution of the Plan by setting the backend."""
         if not self._backend:
             self._backend = find_backend(self._options.backend)
+            self._sql_backend = find_backend(BackendOptions(BackendEngine.DUCKDB, False))
 
     def ExecutePlan(
             self, request: pb2.ExecutePlanRequest, context: grpc.RpcContext) -> Generator[
@@ -178,9 +180,11 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                                 session_id=request.session_id,
                                 result_complete=pb2.ExecutePlanResponse.ResultComplete())
                             return
-                        substrait = convert_sql(request.plan.command.sql_command.sql)
+                        substrait = self._sql_backend.convert_sql(
+                            request.plan.command.sql_command.sql)
                     case 'create_dataframe_view':
                         create_dataframe_view(request.plan, self._backend)
+                        create_dataframe_view(request.plan, self._sql_backend)
                         yield pb2.ExecutePlanResponse(
                             session_id=request.session_id,
                             result_complete=pb2.ExecutePlanResponse.ResultComplete())
@@ -192,8 +196,6 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
                 raise ValueError(f'Unknown plan type: {request.plan}')
         _LOGGER.debug('  as Substrait: %s', substrait)
         # TODO: Register the TPCH data for datafusion through the fixture.
-        if isinstance(self._backend, backend_selector.DatafusionBackend):
-            self._backend.register_tpch()
         self._statistics.add_plan(substrait)
         results = self._backend.execute(substrait)
         _LOGGER.debug('  results are: %s', results)
