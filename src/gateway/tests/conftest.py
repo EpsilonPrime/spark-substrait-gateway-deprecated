@@ -126,14 +126,25 @@ def users_dataframe(spark_session, schema_users, users_location):
         .parquet(users_location)
 
 
+def find_tpch() -> Path:
+    """Find the location of the TPC-H dataset."""
+    current_location = Path('.').resolve()
+    while current_location != Path('/'):
+        location = current_location / 'third_party' / 'tpch' / 'parquet'
+        if location.exists():
+            return location.resolve()
+        current_location = current_location.parent
+    raise ValueError('TPC-H dataset not found')
+
 def _register_table(spark_session: SparkSession, source: str, name: str) -> None:
-    location = Backend.find_tpch() / name
+    location = find_tpch() / name
     match source:
         case 'spark':
             spark_session.sql(
                 f'CREATE OR REPLACE TEMPORARY VIEW {name} USING org.apache.spark.sql.parquet '
                 f'OPTIONS ( path "{location}" )')
         case 'gateway-over-duckdb':
+            # TODO -- Use a version of expand_location not in Backend.
             files = Backend.expand_location(location)
             if not files:
                 raise ValueError(f"No parquet files found at {location}")

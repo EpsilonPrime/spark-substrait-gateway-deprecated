@@ -51,17 +51,6 @@ class Backend:
         files = Path(location).resolve().glob('*.parquet') if path.is_dir() else [path]
         return sorted(str(f) for f in files)
 
-    @staticmethod
-    def find_tpch() -> Path:
-        """Find the location of the TPCH dataset."""
-        current_location = Path('.').resolve()
-        while current_location != Path('/'):
-            location = current_location / 'third_party' / 'tpch' / 'parquet'
-            if location.exists():
-                return location.resolve()
-            current_location = current_location.parent
-        raise ValueError('TPCH dataset not found')
-
     def convert_sql(self, sql: str) -> plan_pb2.Plan:
         """Convert SQL into a Substrait plan."""
         raise NotImplementedError()
