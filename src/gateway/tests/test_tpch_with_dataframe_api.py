@@ -15,7 +15,6 @@ def mark_tests_as_xfail(request):
     """Marks a subset of tests as expected to be fail."""
     source = request.getfixturevalue('source')
     originalname = request.keywords.node.originalname
-<<<<<<< HEAD
     if source == 'gateway-over-duckdb':
         if originalname in [  'test_query_03', 'test_query_18']:
             request.node.add_marker(pytest.mark.xfail(reason='Date time type mismatch'))
