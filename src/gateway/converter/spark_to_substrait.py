@@ -42,8 +42,6 @@ from gateway.converter.symbol_table import SymbolTable
 from substrait.gen.proto import algebra_pb2, plan_pb2, type_pb2
 from substrait.gen.proto.extensions import extensions_pb2
 
-TABLE_NAME = "my_table"
-
 
 # ruff: noqa: RUF005
 class SparkSubstraitConverter:
@@ -553,8 +551,7 @@ class SparkSubstraitConverter:
         local = algebra_pb2.ReadRel.LocalFiles()
         schema = self.convert_schema(rel.schema)
         if not schema:
-            self._backend.register_table(TABLE_NAME, rel.paths[0], rel.format)
-            arrow_schema = self._backend.describe_table(TABLE_NAME)
+            arrow_schema = self._backend.describe_files([str(path) for path in rel.paths])
             schema = self.convert_arrow_schema(arrow_schema)
         symbol = self._symbol_table.get_symbol(self._current_plan_id)
         for field_name in schema.names:

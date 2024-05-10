@@ -35,6 +35,10 @@ class Backend:
         """Register the given table with the backend."""
         raise NotImplementedError()
 
+    def describe_files(self, paths: list[str]):
+        """Asks the backend to describe the given files."""
+        raise NotImplementedError()
+
     def describe_table(self, name: str):
         """Asks the backend to describe the given table."""
         raise NotImplementedError()
