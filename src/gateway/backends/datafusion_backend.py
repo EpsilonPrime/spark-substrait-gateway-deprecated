@@ -77,7 +77,6 @@ class DatafusionBackend(Backend):
             self, name: str, location: Path, file_format: str = 'parquet'
     ) -> None:
         """Register the given table with the backend."""
-
         files = Backend.expand_location(location)
         if not files:
             raise ValueError(f"No parquet files found at {location}")

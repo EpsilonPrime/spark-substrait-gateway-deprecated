@@ -9,8 +9,7 @@ from adbc_driver_manager import dbapi
 from substrait.gen.proto import plan_pb2
 
 from gateway.backends.backend import Backend
-from gateway.backends.backend_options import BackendEngine
-from gateway.backends.backend_options import BackendOptions
+from gateway.backends.backend_options import BackendEngine, BackendOptions
 
 
 def _import(handle):

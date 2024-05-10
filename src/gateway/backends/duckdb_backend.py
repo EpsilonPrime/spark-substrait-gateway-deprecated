@@ -100,6 +100,7 @@ class DuckDBBackend(Backend):
         return pa.schema(fields)
 
     def convert_sql(self, sql: str) -> plan_pb2.Plan:
+        """Convert SQL into a Substrait plan."""
         plan = plan_pb2.Plan()
         proto_bytes = self._connection.get_substrait(query=sql).fetchone()[0]
         plan.ParseFromString(proto_bytes)

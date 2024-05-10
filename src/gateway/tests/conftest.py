@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 
 import pytest
-from gateway.backends.backend import Backend
 from gateway.demo.mystream_database import (
     create_mystream_database,
     delete_mystream_database,
