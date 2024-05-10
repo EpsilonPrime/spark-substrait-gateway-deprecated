@@ -135,7 +135,9 @@ def find_tpch() -> Path:
         current_location = current_location.parent
     raise ValueError('TPC-H dataset not found')
 
+
 def _register_table(spark_session: SparkSession, name: str) -> None:
+    """Registers a TPC-H table with the given name into spark_session."""
     location = find_tpch() / name
     df = spark_session.read.parquet(str(location))
     df.createOrReplaceTempView(name)
