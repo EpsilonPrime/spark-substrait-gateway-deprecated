@@ -13,6 +13,7 @@ from google.protobuf.json_format import MessageToJson
 from pyspark.sql.connect.proto import types_pb2
 from substrait.gen.proto import algebra_pb2, plan_pb2
 
+from gateway.backends import backend_selector
 from gateway.backends.backend import Backend
 from gateway.backends.backend_options import BackendEngine, BackendOptions
 from gateway.backends.backend_selector import find_backend
@@ -234,9 +235,6 @@ class SparkConnectService(pb2_grpc.SparkConnectServiceServicer):
         self._statistics.add_request(request)
         _LOGGER.info('AnalyzePlan: %s', request)
         self._InitializeExecution()
-        # TODO: Register the TPCH data for datafusion through the fixture.
-        if isinstance(self._backend, backend_selector.DatafusionBackend):
-            self._backend.register_tpch()
         if request.schema:
             substrait = self._converter.convert_plan(request.schema.plan)
             self._statistics.add_plan(substrait)
