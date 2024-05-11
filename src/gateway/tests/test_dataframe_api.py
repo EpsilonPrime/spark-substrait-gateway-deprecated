@@ -123,24 +123,19 @@ only showing top 1 row
 
     def test_join(self, spark_session_with_tpch_dataset):
         expected = [
-            Row(c_custkey=61126, c_name='Customer#000061126',
-                c_address='xnS9DcF,FRcyvOkpx7uutCg9SdrBFwENL', c_nationkey=13,
-                c_phone='23-853-408-3335', c_acctbal=1292.82, c_mktsegment='HOUSEHOLD',
-                c_comment='nusual deposits cajole. blithely express foxes wake at the special accounts. foxes sl',
-                o_orderkey=1572866, o_custkey=61126, o_orderstatus='F', o_totalprice=161293.87,
-                o_orderdate=datetime.date(1994, 4, 3), o_orderpriority='5-LOW',
-                o_clerk='Clerk#000000460', o_shippriority=0,
-                o_comment=' unusual somas sleep slyly regular deposits. ironic packa'),
+            Row(n_nationkey=5, n_name='ETHIOPIA', n_regionkey=0,
+                n_comment='ven packages wake quickly. regu', s_suppkey=2,
+                s_name='Supplier#000000002', s_address='89eJ5ksX3ImxJQBvxObC,', s_nationkey=5,
+                s_phone='15-679-861-2259', s_acctbal=4032.68,
+                s_comment=' slyly bold instructions. idle dependen'),
         ]
 
         with utilizes_valid_plans(spark_session_with_tpch_dataset):
-            customer = spark_session_with_tpch_dataset.table('customer')
-            orders = spark_session_with_tpch_dataset.table('orders').filter(
-                col('o_orderkey') == 1572866)
+            nation = spark_session_with_tpch_dataset.table('nation')
+            supplier = spark_session_with_tpch_dataset.table('supplier')
 
-            outcome = customer.join(
-                orders,
-                customer.c_custkey == orders.o_custkey).limit(1).collect()
+            nat = nation.join(supplier, col('n_nationkey') == col('s_nationkey'))
+            outcome = nat.filter(col('s_suppkey') == 2).limit(1).collect()
 
         assertDataFrameEqual(outcome, expected)
 
