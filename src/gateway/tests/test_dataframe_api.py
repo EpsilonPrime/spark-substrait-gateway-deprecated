@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Tests for the Spark to Substrait Gateway server."""
+import datetime
+
 import pytest
 from gateway.tests.conftest import find_tpch
 from gateway.tests.plan_validator import utilizes_valid_plans
@@ -116,6 +118,29 @@ only showing top 1 row
             outcome = users_dataframe.withColumn(
                 'user_id',
                 substring(col('user_id'), 5, 3).cast('integer')).limit(1).collect()
+
+        assertDataFrameEqual(outcome, expected)
+
+    def test_join(self, spark_session_with_tpch_dataset):
+        expected = [
+            Row(c_custkey=61126, c_name='Customer#000061126',
+                c_address='xnS9DcF,FRcyvOkpx7uutCg9SdrBFwENL', c_nationkey=13,
+                c_phone='23-853-408-3335', c_acctbal=1292.82, c_mktsegment='HOUSEHOLD',
+                c_comment='nusual deposits cajole. blithely express foxes wake at the special accounts. foxes sl',
+                o_orderkey=1572866, o_custkey=61126, o_orderstatus='F', o_totalprice=161293.87,
+                o_orderdate=datetime.date(1994, 4, 3), o_orderpriority='5-LOW',
+                o_clerk='Clerk#000000460', o_shippriority=0,
+                o_comment=' unusual somas sleep slyly regular deposits. ironic packa'),
+        ]
+
+        with utilizes_valid_plans(spark_session_with_tpch_dataset):
+            customer = spark_session_with_tpch_dataset.table('customer')
+            orders = spark_session_with_tpch_dataset.table('orders').filter(
+                col('o_orderkey') == 1572866)
+
+            outcome = customer.join(
+                orders,
+                customer.c_custkey == orders.o_custkey).limit(1).collect()
 
         assertDataFrameEqual(outcome, expected)
 
