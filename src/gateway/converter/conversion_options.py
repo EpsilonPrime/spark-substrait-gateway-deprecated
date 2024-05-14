@@ -20,10 +20,11 @@ class ConversionOptions:
         self.duckdb_project_emit_workaround = False
         self.duckdb_project_workaround = False
         self.safety_project_read_relations = False
+        self.project_only_behavior = True
 
         self.return_names_with_types = False
 
-        self.implement_show_string = False  # MEGAHACK -- Make True again
+        self.implement_show_string = True
 
         self.backend = backend
 

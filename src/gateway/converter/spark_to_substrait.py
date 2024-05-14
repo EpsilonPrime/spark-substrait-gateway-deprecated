@@ -83,13 +83,18 @@ class SparkSubstraitConverter:
         """Use the field references using the specified portion of the plan."""
         source_symbol = self._symbol_table.get_symbol(plan_id)
         current_symbol = self._symbol_table.get_symbol(self._current_plan_id)
-        current_symbol.input_fields.extend(source_symbol.output_fields)
-        current_symbol.output_fields.extend(source_symbol.output_fields)
+        original_output_fields = current_symbol.output_fields
+        for symbol in source_symbol.output_fields:
+            while symbol in original_output_fields:
+                symbol = symbol + '_dup'
+            current_symbol.input_fields.append(symbol)
+            current_symbol.output_fields.append(symbol)
 
     def find_field_by_name(self, field_name: str) -> int | None:
         """Look up the field name in the current set of field references."""
         current_symbol = self._symbol_table.get_symbol(self._current_plan_id)
         try:
+            # MEGAHACK -- Should this be input_fields?
             return current_symbol.output_fields.index(field_name)
         except ValueError:
             return None
@@ -1045,9 +1050,34 @@ class SparkSubstraitConverter:
         join.common.CopyFrom(self.create_common_relation())
         return algebra_pb2.Rel(join=join)
 
+    def convert_project_only_relation(
+            self, rel: spark_relations_pb2.Project) -> algebra_pb2.Rel:
+        """Convert a Spark project relation into a Substrait project relation."""
+        input_rel = self.convert_relation(rel.input)
+        project = algebra_pb2.ProjectRel(input=input_rel)
+        self.update_field_references(rel.input.common.plan_id)
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        for field_number, expr in enumerate(rel.expressions):
+            project.expressions.append(self.convert_expression(expr))
+            if expr.HasField('alias'):
+                name = expr.alias.name[0]
+            elif expr.WhichOneof('expr_type') == 'unresolved_attribute':
+                name = expr.unresolved_attribute.unparsed_identifier
+            else:
+                name = f'generated_field_{field_number}'
+            symbol.generated_fields.append(name)
+            symbol.output_fields.append(name)
+        project.common.CopyFrom(self.create_common_relation())
+        symbol.output_fields = symbol.generated_fields
+        for field_number in range(len(rel.expressions)):
+            project.common.emit.output_mapping.append(field_number + len(symbol.input_fields))
+        return algebra_pb2.Rel(project=project)
+
     def convert_project_relation(
             self, rel: spark_relations_pb2.Project) -> algebra_pb2.Rel:
         """Convert a Spark project relation into a Substrait project relation."""
+        if self._conversion_options.project_only_behavior:
+            return self.convert_project_only_relation(rel)
         input_rel = self.convert_relation(rel.input)
         project = algebra_pb2.ProjectRel(input=input_rel)
         self.update_field_references(rel.input.common.plan_id)
@@ -1067,8 +1097,9 @@ class SparkSubstraitConverter:
         if self._conversion_options.duckdb_project_workaround:
             for field_number in range(len(symbol.input_fields)):
                 project.common.emit.output_mapping.append(field_number + len(symbol.input_fields))
-        for field_number, _ in enumerate(rel.expressions):
-            project.common.emit.output_mapping.append(field_number + len(symbol.input_fields) * 2)
+            for field_number, _ in enumerate(rel.expressions):
+                project.common.emit.output_mapping.append(
+                    field_number + len(symbol.input_fields) * 2)
         return algebra_pb2.Rel(project=project)
 
     def convert_subquery_alias_relation(self,
