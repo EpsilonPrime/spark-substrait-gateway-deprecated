@@ -18,9 +18,7 @@ class ConversionOptions:
         self.use_switch_expressions_where_possible = True
         self.use_duckdb_regexp_matches_function = False
         self.duckdb_project_emit_workaround = False
-        self.duckdb_project_workaround = False
         self.safety_project_read_relations = False
-        self.project_only_behavior = True
 
         self.return_names_with_types = False
 
@@ -52,5 +50,4 @@ def duck_db():
     options.use_switch_expressions_where_possible = False
     options.use_duckdb_regexp_matches_function = True
     options.duckdb_project_emit_workaround = True
-    options.duckdb_project_workaround = True
     return options
