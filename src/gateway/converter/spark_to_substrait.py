@@ -85,10 +85,11 @@ class SparkSubstraitConverter:
         current_symbol = self._symbol_table.get_symbol(self._current_plan_id)
         original_output_fields = current_symbol.output_fields
         for symbol in source_symbol.output_fields:
-            while symbol in original_output_fields:
-                symbol = symbol + '_dup'
-            current_symbol.input_fields.append(symbol)
-            current_symbol.output_fields.append(symbol)
+            new_name = symbol
+            while new_name in original_output_fields:
+                new_name = new_name + '_dup'
+            current_symbol.input_fields.append(new_name)
+            current_symbol.output_fields.append(new_name)
 
     def find_field_by_name(self, field_name: str) -> int | None:
         """Look up the field name in the current set of field references."""
