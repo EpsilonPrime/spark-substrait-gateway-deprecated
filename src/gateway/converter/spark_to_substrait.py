@@ -95,8 +95,7 @@ class SparkSubstraitConverter:
         """Look up the field name in the current set of field references."""
         current_symbol = self._symbol_table.get_symbol(self._current_plan_id)
         try:
-            # MEGAHACK -- Should this be input_fields?
-            return current_symbol.output_fields.index(field_name)
+            return current_symbol.input_fields.index(field_name)
         except ValueError:
             return None
 
