@@ -1079,9 +1079,13 @@ class SparkSubstraitConverter:
     def convert_subquery_alias_relation(self,
                                         rel: spark_relations_pb2.SubqueryAlias) -> algebra_pb2.Rel:
         """Convert a Spark subquery alias relation into a Substrait relation."""
-        # TODO -- Utilize rel.alias somehow.
         result = self.convert_relation(rel.input)
         self.update_field_references(rel.input.common.plan_id)
+        symbol = self._symbol_table.get_symbol(self._current_plan_id)
+        if len(symbol.output_fields) == 1:
+            symbol.output_fields[0] = rel.alias
+        else:
+            raise ValueError('Unexpectedly received multiple fields for a subquery alias relation.')
         return result
 
     def convert_deduplicate_relation(self, rel: spark_relations_pb2.Deduplicate) -> algebra_pb2.Rel:
