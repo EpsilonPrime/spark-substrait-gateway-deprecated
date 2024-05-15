@@ -118,12 +118,17 @@ def spark_session(source):
 
 # pylint: disable=redefined-outer-name
 @pytest.fixture(scope='function')
-def users_dataframe(spark_session, schema_users, users_location):
-    """Provides a ready to go dataframe over the users database."""
-    #return spark_session.read.format('parquet') \
-    #    .schema(from_arrow_schema(schema_users)) \
-    #    .parquet(users_location)
-    return spark_session.table('users')
+def spark_session_with_users_dataset(spark_session, schema_users, users_location):
+    """Provides the spark session with the users database already loaded."""
+    df = spark_session.read.parquet(users_location)
+    df.createOrReplaceTempView('users')
+    return spark_session
+
+
+@pytest.fixture(scope='function')
+def users_dataframe(spark_session_with_users_dataset):
+    """Provides a ready to go users dataframe."""
+    return spark_session_with_users_dataset.table('users')
 
 
 def find_tpch() -> Path:
