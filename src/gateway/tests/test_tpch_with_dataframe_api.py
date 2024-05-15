@@ -27,7 +27,7 @@ def mark_tests_as_xfail(request):
         elif originalname in ['test_query_15']:
             request.node.add_marker(pytest.mark.xfail(reason='No results (float vs decimal)'))
         elif originalname in ['test_query_16', 'test_query_21']:
-            request.node.add_marker(pytest.mark.xfail(reason='Disctinct argument behavior'))
+            request.node.add_marker(pytest.mark.xfail(reason='Distinct argument behavior'))
         elif originalname in ['test_query_20']:
             request.node.add_marker(pytest.mark.xfail(reason='Unknown validation error'))
         elif originalname in ['test_query_22']:
