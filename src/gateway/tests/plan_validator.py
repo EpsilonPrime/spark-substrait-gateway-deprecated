@@ -35,7 +35,9 @@ def utilizes_valid_plans(session):
     except SparkConnectGrpcException as e:
         exception = e
     if session.conf.get('spark-substrait-gateway.backend', 'spark') == 'spark':
-        raise exception
+        if exception:
+            raise exception
+        return
     plan_count = int(session.conf.get('spark-substrait-gateway.plan_count'))
     plans_as_text = []
     for i in range(plan_count):
