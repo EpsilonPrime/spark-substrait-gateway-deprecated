@@ -241,7 +241,8 @@ class SparkSubstraitConverter:
         else:
             nullable_literal = self.determine_type_of_expression(ifthen.ifs[-1].then)
             kind = nullable_literal.WhichOneof('kind')
-            getattr(nullable_literal, kind).nullability = type_pb2.Type.Nullability.NULLABILITY_NULLABLE
+            getattr(nullable_literal, kind).nullability = (
+                type_pb2.Type.Nullability.NULLABILITY_NULLABLE)
             getattr(ifthen, 'else').CopyFrom(
                 algebra_pb2.Expression(
                     literal=algebra_pb2.Expression.Literal(
