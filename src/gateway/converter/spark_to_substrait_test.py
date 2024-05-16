@@ -44,6 +44,7 @@ def test_plan_conversion(request, path):
     options = duck_db()
     backend = find_backend(options.backend)
     options.implement_show_string = False
+    options.backend.use_duckdb_python_api = True
     convert = SparkSubstraitConverter(options)
     convert.set_backends(backend, backend)
     substrait = convert.convert_plan(spark_plan)

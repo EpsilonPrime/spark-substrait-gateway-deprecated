@@ -31,6 +31,7 @@ class DuckDBBackend(Backend):
         self._connection = None
         super().__init__(options)
         self.create_connection()
+        self._use_duckdb_python_api = options.use_duckdb_python_api
 
     def create_connection(self):
         """Create a connection to the backend."""
@@ -58,17 +59,22 @@ class DuckDBBackend(Backend):
         return pa.Table.from_pandas(df=df)
 
     def register_table(
-        self,
-        table_name: str,
-        location: Path,
-        file_format: str = "parquet"
+            self,
+            table_name: str,
+            location: Path,
+            file_format: str = "parquet"
     ) -> None:
         """Register the given table with the backend."""
         files = Backend.expand_location(location)
         if not files:
             raise ValueError(f"No parquet files found at {location}")
 
-        self._connection.register(table_name, self._connection.read_parquet(files))
+        if self._use_duckdb_python_api:
+            self._connection.register(table_name, self._connection.read_parquet(files))
+        else:
+            files_str = ', '.join([f"'{f}'" for f in files])
+            files_sql = f"CREATE OR REPLACE TABLE {table_name} AS FROM read_parquet([{files_str}])"
+            self._connection.execute(files_sql)
 
     def describe_files(self, paths: list[str]):
         """Asks the backend to describe the given files."""
