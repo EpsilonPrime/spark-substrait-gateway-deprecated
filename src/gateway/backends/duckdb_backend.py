@@ -67,10 +67,8 @@ class DuckDBBackend(Backend):
         files = Backend.expand_location(location)
         if not files:
             raise ValueError(f"No parquet files found at {location}")
-        files_str = ', '.join([f"'{f}'" for f in files])
-        files_sql = f"CREATE OR REPLACE TABLE {table_name} AS FROM read_parquet([{files_str}])"
 
-        self._connection.execute(files_sql)
+        self._connection.register(table_name, self._connection.read_parquet(files))
 
     def describe_files(self, paths: list[str]):
         """Asks the backend to describe the given files."""
@@ -89,13 +87,10 @@ class DuckDBBackend(Backend):
 
     def describe_table(self, name: str):
         """Asks the backend to describe the given table."""
-        df = self._connection.table(name).describe()
+        df = self._connection.execute(f'DESCRIBE {name}').fetchdf()
 
         fields = []
-        for name, field_type in zip(df.columns, df.types, strict=False):
-            if name == 'aggr':
-                # This isn't a real column.
-                continue
+        for name, field_type in zip(df.column_name, df.column_type, strict=False):
             fields.append(pa.field(name, _DUCKDB_TO_ARROW[str(field_type)]))
         return pa.schema(fields)
 
