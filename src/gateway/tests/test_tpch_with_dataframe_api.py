@@ -16,17 +16,15 @@ def mark_tests_as_xfail(request):
     source = request.getfixturevalue('source')
     originalname = request.keywords.node.originalname
     if source == 'gateway-over-duckdb':
-        if originalname in ['test_query_04']:
-            request.node.add_marker(pytest.mark.xfail(reason='Incorrect calculation'))
-        elif originalname in[ 'test_query_07', 'test_query_08', 'test_query_09']:
+        if originalname in[ 'test_query_07', 'test_query_08', 'test_query_09']:
             request.node.add_marker(pytest.mark.xfail(reason='Substring argument mismatch'))
-        elif originalname in ['test_query_12']:
+        elif originalname in ['test_query_12', 'test_query_14']:
             request.node.add_marker(pytest.mark.xfail(reason='Missing nullability information'))
         elif originalname in ['test_query_15']:
             request.node.add_marker(pytest.mark.xfail(reason='No results (float vs decimal)'))
         elif originalname in ['test_query_16', 'test_query_21']:
             request.node.add_marker(pytest.mark.xfail(reason='Distinct argument behavior'))
-        elif originalname in ['test_query_20']:
+        elif originalname in ['test_query_19', 'test_query_20']:
             request.node.add_marker(pytest.mark.xfail(reason='Unknown validation error'))
         elif originalname in ['test_query_22']:
             request.node.add_marker(pytest.mark.xfail(reason='Schema determination for null'))
@@ -384,11 +382,11 @@ class TestTpchWithDataFrameAPI:
 
     def test_query_11(self, spark_session_with_tpch_dataset):
         expected = [
-            Row(ps_partkey=129760, value=17538456.86),
-            Row(ps_partkey=166726, value=16503353.92),
-            Row(ps_partkey=191287, value=16474801.97),
-            Row(ps_partkey=161758, value=16101755.54),
-            Row(ps_partkey=34452, value=15983844.72),
+            Row(ps_partkey=129760, part_value=17538456.86),
+            Row(ps_partkey=166726, part_value=16503353.92),
+            Row(ps_partkey=191287, part_value=16474801.97),
+            Row(ps_partkey=161758, part_value=16101755.54),
+            Row(ps_partkey=34452, part_value=15983844.72),
         ]
 
         with utilizes_valid_plans(spark_session_with_tpch_dataset):
@@ -486,7 +484,8 @@ class TestTpchWithDataFrameAPI:
 
     def test_query_15(self, spark_session_with_tpch_dataset):
         expected = [
-            Row(s_suppkey=8449, s_name='Supplier#000008449', s_address='Wp34zim9qYFbVctdW'),
+            Row(s_suppkey=8449, s_name='Supplier#000008449', s_address='Wp34zim9qYFbVctdW',
+                s_phone='20-469-856-8873', total=1772627.21),
         ]
 
         with utilizes_valid_plans(spark_session_with_tpch_dataset):
@@ -584,7 +583,7 @@ class TestTpchWithDataFrameAPI:
                 'l_quantity', 'c_name', 'c_custkey', 'o_orderkey', 'o_orderdate',
                 'o_totalprice').groupBy(
                 'c_name', 'c_custkey', 'o_orderkey', 'o_orderdate', 'o_totalprice').agg(
-                try_sum('l_quantity'))
+                try_sum('l_quantity')).alias('sum_l_quantity')
 
             sorted_outcome = outcome.sort(desc('o_totalprice'), 'o_orderdate').limit(2).collect()
 
@@ -615,7 +614,7 @@ class TestTpchWithDataFrameAPI:
                  (col('l_quantity') >= 20) & (col('l_quantity') <= 30) &
                  (col('p_size') >= 1) & (col('p_size') <= 15))).select(
                 (col('l_extendedprice') * (1 - col('l_discount'))).alias('volume')).agg(
-                try_sum('volume').alias('revenue'))
+                try_sum('volume').alias('revenue')).collect()
 
         assert_dataframes_equal(outcome, expected)
 
