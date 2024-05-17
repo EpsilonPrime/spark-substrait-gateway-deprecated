@@ -339,10 +339,10 @@ class SparkSubstraitConverter:
                 break
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
-        if unresolved_function.is_distinct:
-            if unresolved_function.function_name != 'count_distinct':
-                raise NotImplementedError(
-                    'Treating arguments as distinct is not supported for unresolved functions.')
+        if unresolved_function.is_distinct and (
+                unresolved_function.function_name != 'count_distinct'):
+            raise NotImplementedError(
+                'Treating arguments as distinct is not supported for unresolved functions.')
         func.output_type.CopyFrom(function_def.output_type)
         if unresolved_function.function_name == 'substring':
             original_argument = func.arguments[0]
