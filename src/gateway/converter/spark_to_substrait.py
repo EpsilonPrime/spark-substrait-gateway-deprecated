@@ -337,9 +337,6 @@ class SparkSubstraitConverter:
                 break
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
-        if unresolved_function.is_distinct:
-            # Setting the mode to AGGREGATION_INVOCATION_DISTINCT occurs higher up.
-            pass
         func.output_type.CopyFrom(function_def.output_type)
         if unresolved_function.function_name == 'substring':
             original_argument = func.arguments[0]
@@ -731,7 +728,8 @@ class SparkSubstraitConverter:
         for expr in rel.aggregate_expressions:
             aggregate.measures.append(
                 algebra_pb2.AggregateRel.Measure(
-                    measure=self.convert_expression_to_aggregate_function(expr)))
+                    measure=self.convert_expression_to_aggregate_function(expr))
+            )
             symbol.generated_fields.append(self.determine_expression_name(expr))
         symbol.output_fields.clear()
         symbol.output_fields.extend(symbol.generated_fields)
