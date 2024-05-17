@@ -21,7 +21,7 @@ def mark_tests_as_xfail(request):
         elif originalname in ['test_query_08']:
             request.node.add_marker(pytest.mark.xfail(reason='DuckDB binder error'))
         elif originalname == 'test_query_16':
-            request.node.add_marker(pytest.mark.xfail(reason='approx_count_distinct is too approx'))
+            request.node.add_marker(pytest.mark.xfail(reason='results differ'))
     elif source == 'gateway-over-datafusion':
         pytest.importorskip("datafusion.substrait")
         request.node.add_marker(pytest.mark.xfail(reason='gateway internal error'))

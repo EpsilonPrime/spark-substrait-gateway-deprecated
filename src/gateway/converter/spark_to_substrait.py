@@ -710,10 +710,12 @@ class SparkSubstraitConverter:
 
     def is_distinct(self, expr: spark_exprs_pb2.Expression) -> bool:
         """Determine if the expression is distinct."""
-        if expr.WhichOneof('expr_type') == 'unresolved_function' and expr.unresolved_function.is_distinct:
+        if expr.WhichOneof(
+                'expr_type') == 'unresolved_function' and expr.unresolved_function.is_distinct:
             return True
         if expr.WhichOneof('expr_type') == 'alias':
             return self.is_distinct(expr.alias.expr)
+        return False
 
     def convert_aggregate_relation(self, rel: spark_relations_pb2.Aggregate) -> algebra_pb2.Rel:
         """Convert an aggregate relation into a Substrait relation."""
@@ -729,7 +731,8 @@ class SparkSubstraitConverter:
         for expr in rel.aggregate_expressions:
             aggregate.measures.append(
                 algebra_pb2.AggregateRel.Measure(
-                    measure=self.convert_expression_to_aggregate_function(expr, self.is_distinct(expr)), )
+                    measure=self.convert_expression_to_aggregate_function(expr,
+                                                                          self.is_distinct(expr)))
             )
             symbol.generated_fields.append(self.determine_expression_name(expr))
         symbol.output_fields.clear()

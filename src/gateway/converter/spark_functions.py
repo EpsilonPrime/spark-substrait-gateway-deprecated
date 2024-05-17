@@ -164,7 +164,7 @@ SPARK_SUBSTRAIT_MAPPING = {
         '/functions_aggregate_generic.yaml', 'count:any', type_pb2.Type(
             i64=type_pb2.Type.I64(
                 nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
-    'count_distinct': ExtensionFunction(
+    'approx_count_distinct': ExtensionFunction(
         '/functions_aggregate_approx.yaml', 'approx_count_distinct:any',
         type_pb2.Type(i64=type_pb2.Type.I64(
             nullability=type_pb2.Type.Nullability.NULLABILITY_REQUIRED))),
