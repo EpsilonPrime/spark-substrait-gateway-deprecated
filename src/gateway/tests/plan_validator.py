@@ -13,7 +13,7 @@ def validate_plan(json_plan: str):
     substrait_plan = json_format.Parse(json_plan, plan_pb2.Plan())
     try:
         diagnostics = substrait_validator.plan_to_diagnostics(substrait_plan.SerializeToString())
-    except google.protobuf.message.DecodeError as e:
+    except google.protobuf.message.DecodeError:
         # Probable protobuf mismatch internal to Substrait Validator, ignore for now.
         return
     issues = []
