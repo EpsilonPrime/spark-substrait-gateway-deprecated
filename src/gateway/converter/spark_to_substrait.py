@@ -325,6 +325,8 @@ class SparkSubstraitConverter:
             return self.convert_in_function(unresolved_function)
         if unresolved_function.function_name == 'rlike':
             return self.convert_rlike_function(unresolved_function)
+        if unresolved_function.function_name == 'count' and unresolved_function.is_distinct:
+            unresolved_function.function_name = 'count_distinct'
         func = algebra_pb2.Expression.ScalarFunction()
         function_def = self.lookup_function_by_name(unresolved_function.function_name)
         func.function_reference = function_def.anchor
@@ -338,8 +340,9 @@ class SparkSubstraitConverter:
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
         if unresolved_function.is_distinct:
-            raise NotImplementedError(
-                'Treating arguments as distinct is not supported for unresolved functions.')
+            if unresolved_function.function_name != 'count_distinct':
+                raise NotImplementedError(
+                    'Treating arguments as distinct is not supported for unresolved functions.')
         func.output_type.CopyFrom(function_def.output_type)
         if unresolved_function.function_name == 'substring':
             original_argument = func.arguments[0]
