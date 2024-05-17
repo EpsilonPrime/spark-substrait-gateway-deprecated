@@ -325,8 +325,6 @@ class SparkSubstraitConverter:
             return self.convert_in_function(unresolved_function)
         if unresolved_function.function_name == 'rlike':
             return self.convert_rlike_function(unresolved_function)
-        if unresolved_function.function_name == 'count' and unresolved_function.is_distinct:
-            unresolved_function.function_name = 'count_distinct'
         func = algebra_pb2.Expression.ScalarFunction()
         function_def = self.lookup_function_by_name(unresolved_function.function_name)
         func.function_reference = function_def.anchor
@@ -339,10 +337,9 @@ class SparkSubstraitConverter:
                 break
             func.arguments.append(
                 algebra_pb2.FunctionArgument(value=self.convert_expression(arg)))
-        if unresolved_function.is_distinct and (
-                unresolved_function.function_name != 'count_distinct'):
-            raise NotImplementedError(
-                'Treating arguments as distinct is not supported for unresolved functions.')
+        if unresolved_function.is_distinct:
+            # Setting the mode to AGGREGATION_INVOCATION_DISTINCT occurs higher up.
+            pass
         func.output_type.CopyFrom(function_def.output_type)
         if unresolved_function.function_name == 'substring':
             original_argument = func.arguments[0]
@@ -444,10 +441,12 @@ class SparkSubstraitConverter:
 
     def convert_expression_to_aggregate_function(
             self,
-            expr: spark_exprs_pb2.Expression) -> algebra_pb2.AggregateFunction:
+            expr: spark_exprs_pb2.Expression, is_distinct: bool) -> algebra_pb2.AggregateFunction:
         """Convert a SparkConnect expression to a Substrait expression."""
         func = algebra_pb2.AggregateFunction(
             phase=algebra_pb2.AggregationPhase.AGGREGATION_PHASE_INITIAL_TO_RESULT)
+        if is_distinct:
+            func.invocation = algebra_pb2.AggregateFunction.AGGREGATION_INVOCATION_DISTINCT
         expression = self.convert_expression(expr)
         match expression.WhichOneof('rex_type'):
             case 'scalar_function':
@@ -709,6 +708,13 @@ class SparkSubstraitConverter:
             return expr.unresolved_attribute.unparsed_identifier
         return 'grouping'
 
+    def is_distinct(self, expr: spark_exprs_pb2.Expression) -> bool:
+        """Determine if the expression is distinct."""
+        if expr.WhichOneof('expr_type') == 'unresolved_function' and expr.unresolved_function.is_distinct:
+            return True
+        if expr.WhichOneof('expr_type') == 'alias':
+            return self.is_distinct(expr.alias.expr)
+
     def convert_aggregate_relation(self, rel: spark_relations_pb2.Aggregate) -> algebra_pb2.Rel:
         """Convert an aggregate relation into a Substrait relation."""
         aggregate = algebra_pb2.AggregateRel(input=self.convert_relation(rel.input))
@@ -723,7 +729,7 @@ class SparkSubstraitConverter:
         for expr in rel.aggregate_expressions:
             aggregate.measures.append(
                 algebra_pb2.AggregateRel.Measure(
-                    measure=self.convert_expression_to_aggregate_function(expr))
+                    measure=self.convert_expression_to_aggregate_function(expr, self.is_distinct(expr)), )
             )
             symbol.generated_fields.append(self.determine_expression_name(expr))
         symbol.output_fields.clear()
